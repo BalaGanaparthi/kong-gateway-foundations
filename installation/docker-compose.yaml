@@ -64,6 +64,7 @@ services:
       db:
         condition: service_healthy
     volumes:
+      - /srv/shared/logs:/srv/shared/logs
       - /srv/shared/ssl-certs:/srv/shared/ssl
     environment:
       KONG_ROLE: control_plane
@@ -158,6 +159,7 @@ services:
         condition: service_healthy
     volumes:
       - /srv/shared/ssl-certs:/srv/shared/ssl
+      - /srv/shared/logs:/srv/shared/logs
     environment:
       KONG_ROLE: "data_plane"
       KONG_CLUSTER_CERT: "/srv/shared/ssl/hybrid/cluster.crt"
