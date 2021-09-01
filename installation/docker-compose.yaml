@@ -83,18 +83,18 @@ services:
       KONG_PG_USER: kong
       KONG_PG_PASSWORD: kong
       KONG_PG_MAX_CONCURRENT_QUERIES: 5
-      KONG_ADMIN_ACCESS_LOG: /dev/stdout
-      KONG_ADMIN_ERROR_LOG: /dev/stderr
+      KONG_ADMIN_ACCESS_LOG: /srv/shared/logs/admin_access.log
+      KONG_ADMIN_ERROR_LOG: /srv/shared/logs/error_access.log
       # KONG_ADMIN_GUI_ACCESS_LOG: /dev/stdout
       # KONG_ADMIN_GUI_ERROR_LOG: /dev/stderr
-      KONG_ADMIN_GUI_ACCESS_LOG: /usr/local/kong/logs/access.log
-      KONG_ADMIN_GUI_ERROR_LOG: /usr/local/kong/logs/error.log
-      KONG_PORTAL_API_ACCESS_LOG: /dev/stdout
-      KONG_PORTAL_API_ERROR_LOG: /dev/stderr
-      KONG_PORTAL_GUI_ACCESS_LOG: /dev/stdout
-      KONG_PORTAL_GUI_ERROR_LOG: /dev/stderr
-      KONG_STATUS_ACCESS_LOG: /dev/stdout
-      KONG_STATUS_ERROR_LOG: /dev/stderr
+      KONG_ADMIN_GUI_ACCESS_LOG: /srv/shared/logs/admingui_access.log
+      KONG_ADMIN_GUI_ERROR_LOG: /srv/shared/logs/admingui_error.log
+      KONG_PORTAL_API_ACCESS_LOG: /srv/shared/logs/portalapi_access.log
+      KONG_PORTAL_API_ERROR_LOG: /srv/shared/logs/portalapi_error.log
+      KONG_PORTAL_GUI_ACCESS_LOG: /srv/shared/logs/portalgui_access.log
+      KONG_PORTAL_GUI_ERROR_LOG: /srv/shared/logs/portalgui_error.log
+      KONG_STATUS_ACCESS_LOG: /srv/shared/logs/status_access.log
+      KONG_STATUS_ERROR_LOG: /srv/shared/logs/status_error.log
       KONG_STATUS_SSL_CERT_KEY: "/srv/shared/ssl/wildcard.key"
       KONG_STATUS_SSL_CERT: "/srv/shared/ssl/wildcard.pem"
       KONG_ANONYMOUS_REPORTS: "off"
@@ -168,8 +168,8 @@ services:
       KONG_PROXY_LISTEN: "0.0.0.0:8000, 0.0.0.0:8443 http2 ssl"
       KONG_STREAM_LISTEN: "0.0.0.0:5555, 0.0.0.0:5556 ssl reuseport backlog=65536"
       KONG_STATUS_LISTEN: "0.0.0.0:8101"
-      KONG_PROXY_ACCESS_LOG: "/dev/stdout"
-      KONG_PROXY_ERROR_LOG: "/dev/stderr"
+      KONG_PROXY_ACCESS_LOG: "/srv/shared/logs/proxy_access.log"
+      KONG_PROXY_ERROR_LOG: "/srv/shared/logs/proxy_error.log"
       KONG_DATABASE: "off"
       KONG_LICENSE_DATA: ${KONG_LICENSE_DATA}
       KONG_ANONYMOUS_REPORTS: "off"
