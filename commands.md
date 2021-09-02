@@ -3,26 +3,28 @@
 
 # 02 - Kong Gateway Installation
 ./setup-docker.sh
-git clone https://github.com/johnfitzpatrick/kong-gateway-operations.git
+git clone https://github.com/kong-education/kong-gateway-operations.git
 cd kong-gateway-operations/installation
 tree
 
 sudo cp -R ssl-certs /srv/shared
+mkdir -p /srv/shared/logs
+touch $(grep '/srv/shared/logs/' docker-compose.yaml|awk '{print $2}'|xargs)
+chmod a+w /srv/shared/logs/*
 docker-compose up -d
 
 echo $KONG_ADMIN_API_URI
 http --headers GET $KONG_ADMIN_API_URI
 
 echo $KONG_MANAGER_URI
-cat << EOF >> license.json
-{"license":{"version":1,"signature":"06497d9d0a20ed9cdae9c213fad12760820887ab3dfd66fdc97c417264a7853e2b2fb20dcb239c9edbc0df03edfae6c70003bfc5ecce8b6911e0c24d022a8204","payload":{"customer":"John Fitzpatrick","license_creation_date":"2021-8-9","product_subscription":"Kong Enterprise Subscription","support_plan":"Platinum","admin_seats":"1","dataplanes":"10","license_expiration_date":"2022-08-09","license_key":"0011K000022IA3HQAW_a1V1K0000084AfPUAU"}}}
-EOF
-http POST "$KONG_ADMIN_API_URI/licenses" payload=@./license.json
+http POST "$KONG_ADMIN_API_URI/licenses" payload=@/etc/kong/license.json
 docker-compose stop kong-cp; docker-compose rm -f kong-cp; docker-compose up -d kong-cp
 
 sed -ie "s|KONG_ADMIN_API_URI|$KONG_ADMIN_API_URI|g" deck/deck.yaml
 deck diff --config deck/deck.yaml -s deck/default-entities.yaml --workspace default
 deck sync --config deck/deck.yaml -s deck/default-entities.yaml --workspace default
+
+__Manual step: Enable Dev Portal__
 
 curl --cacert /srv/shared/ssl-certs/rootCA.pem -X POST "$KONG_PORTAL_API_URI/default/register" \
 -H 'Content-Type: application/json' \
@@ -36,8 +38,6 @@ curl --cacert /srv/shared/ssl-certs/rootCA.pem -X PATCH "$KONG_ADMIN_API_URI/def
 --header 'Content-Type: application/json' \
 --header 'Kong-Admin-Token: password' \
 --data-raw '{"status": 0}'
-
-
 
 # 04 - Securing Kong
 
