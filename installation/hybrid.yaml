@@ -49,7 +49,7 @@ services:
     - kong-cp-bootstrap
   restart: always
   volumes:
-   - ./certs:/var/kong/certs
+   - ./ssl-certs/hybrid:/var/kong/certs
   ports:
    - 8001:8001
    - 8002:8002
@@ -90,7 +90,7 @@ services:
    - kong-cp
   restart: always
   volumes:
-   - ./certs:/var/kong/certs
+   - ./ssl-certs/hybrid:/var/kong/certs
   ports:
    - 8000:8000
    - 8443:8443
@@ -120,7 +120,7 @@ services:
    - kong-cp
   restart: always
   volumes:
-   - ./certs:/var/kong/certs
+   - ./ssl-certs/hybrid:/var/kong/certs
   ports:
    - 8010:8000
    - 8453:8443
