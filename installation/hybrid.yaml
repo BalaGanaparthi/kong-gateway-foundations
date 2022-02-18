@@ -2,143 +2,159 @@
 # Example: export KONG_CP_VERSION="2.4.1.0-alpine"
 
 version: "3"
+networks:
+  kong-edu-net:
 services:
- postgres:
-  image: postgres:9.6
-  restart: always
-  container_name: postgres
-  hostname: postgres
-  environment:
-   - POSTGRES_USER=kong
-   - POSTGRES_DB=kong
-   - POSTGRES_PASSWORD=kong
-  ports:
-   - 5432:5432
- kong-cp-bootstrap:
-  image: kong/kong-gateway:$KONG_CP_VERSION
-  container_name: kong-cp-bootstrap
-  depends_on:
-    - postgres
-  restart: on-failure
-  command: "kong migrations bootstrap"
-  environment:
-    - KONG_DATABASE=postgres
-    - KONG_PG_HOST=postgres
-    - KONG_PG_PASSWORD=kong
-    - KONG_PASSWORD=admin
-    - KONG_LICENSE_DATA=${KONG_LICENSE_DATA}
- kong-migrations-up:
-  image: kong/kong-gateway:$KONG_CP_VERSION
-  container_name: kong-migrations-up
-  depends_on:
-    - postgres
-  restart: on-failure
-  command: "kong migrations up && kong migrations finish"
-  environment:
-    - KONG_DATABASE=postgres
-    - KONG_PG_HOST=postgres
-    - KONG_PG_PASSWORD=kong
-    - KONG_PASSWORD=admin
-    - KONG_LICENSE_DATA=${KONG_LICENSE_DATA}   
- kong-cp:
-  image: kong/kong-gateway:$KONG_CP_VERSION
-  container_name: kong-cp
-  hostname: kong-cp
-  depends_on:
-    - postgres
-    - kong-cp-bootstrap
-  restart: always
-  volumes:
-   - /srv/shared/ssl-certs/hybrid:/var/kong/certs
-  ports:
-   - 8001:8001
-   - 8002:8002
-   - 8003:8003
-   - 8004:8004
-   - 8005:8005
-   - 8006:8006
-   - 8444:8444
-   - 8100:8100
-  command: "kong start"
-  environment:
-   - KONG_ROLE=control_plane
-   - KONG_CLUSTER_CERT=/var/kong/certs/cluster.crt
-   - KONG_CLUSTER_CERT_KEY=/var/kong/certs/cluster.key
-   - KONG_LUA_SSL_TRUSTED_CERTIFICATE=/var/kong/certs/cluster.crt
-   - KONG_DATABASE=postgres
-   - KONG_PG_HOST=postgres
-   - KONG_PG_PASSWORD=kong
-   - KONG_PROXY_ACCESS_LOG=/dev/stdout
-   - KONG_ADMIN_ACCESS_LOG=/dev/stdout
-   - KONG_PROXY_ERROR_LOG=/dev/stderr
-   - KONG_ADMIN_ERROR_LOG=/dev/stderr
-   - KONG_ADMIN_LISTEN=0.0.0.0:8001, 0.0.0.0:8444 ssl
-   - KONG_LICENSE_DATA=${KONG_LICENSE_DATA}
-   - KONG_ADMIN_GUI_URL=http://localhost:8002
-   - KONG_VITALS=off
-   - KONG_STATUS_LISTEN=0.0.0.0:8100
-   - KONG_CLUSTER_TELEMETRY_LISTEN=0.0.0.0:8006
-   - KONG_PASSWORD=admin
-   - KONG_ENFORCE_RBAC=on
-   - KONG_ADMIN_GUI_AUTH=basic-auth
-   - KONG_ADMIN_GUI_SESSION_CONF={"secret":"kong", "cookie_name":"kong_cookie", "cookie_secure":false}
- kong-dp1:
-  image: kong/kong-gateway:$KONG_DP_VERSION
-  container_name: kong-dp1
-  hostname: kong-dp1
-  depends_on:
-   - kong-cp
-  restart: always
-  volumes:
-   - /srv/shared/ssl-certs/hybrid:/var/kong/certs
-  ports:
-   - 8000:8000
-   - 8443:8443
-   - 8101:8100
-  command: "kong start"
-  environment:
-   - KONG_ROLE=data_plane
-   - KONG_CLUSTER_CONTROL_PLANE=kong-cp:8005
-   - KONG_CLUSTER_TELEMETRY_ENDPOINT=kong-cp:8006
-   - KONG_DATABASE=off
-   - KONG_CLUSTER_CERT=/var/kong/certs/cluster.crt
-   - KONG_CLUSTER_CERT_KEY=/var/kong/certs/cluster.key
-   - KONG_LUA_SSL_TRUSTED_CERTIFICATE=/var/kong/certs/cluster.crt
-   - KONG_PROXY_ACCESS_LOG=/dev/stdout
-   - KONG_ADMIN_ACCESS_LOG=/dev/stdout
-   - KONG_PROXY_ERROR_LOG=/dev/stderr
-   - KONG_ADMIN_ERROR_LOG=/dev/stderr
-   - KONG_PROXY_LISTEN=0.0.0.0:8000, 0.0.0.0:8443 ssl
-   - KONG_LICENSE_DATA=${KONG_LICENSE_DATA}
-   - KONG_VITALS=off
-   - KONG_STATUS_LISTEN=0.0.0.0:8100
- kong-dp2:
-  image: kong/kong-gateway:$KONG_DP_VERSION
-  container_name: kong-dp2
-  hostname: kong-dp2
-  depends_on:
-   - kong-cp
-  restart: always
-  volumes:
-   - /srv/shared/ssl-certs/hybrid:/var/kong/certs
-  ports:
-   - 8010:8000
-   - 8453:8443
-   - 8102:8100
-  command: "kong start"
-  environment:
-   - KONG_ROLE=data_plane
-   - KONG_CLUSTER_CONTROL_PLANE=kong-cp:8005
-   - KONG_DATABASE=off
-   - KONG_CLUSTER_TELEMETRY_ENDPOINT=kong-cp:8006
-   - KONG_CLUSTER_CERT=/var/kong/certs/cluster.crt
-   - KONG_CLUSTER_CERT_KEY=/var/kong/certs/cluster.key
-   - KONG_LUA_SSL_TRUSTED_CERTIFICATE=/var/kong/certs/cluster.crt
-   - KONG_PROXY_ACCESS_LOG=/dev/stdout
-   - KONG_ADMIN_ACCESS_LOG=/dev/stdout
-   - KONG_PROXY_ERROR_LOG=/dev/stderr
-   - KONG_ADMIN_ERROR_LOG=/dev/stderr
-   - KONG_PROXY_LISTEN=0.0.0.0:8000, 0.0.0.0:8443 ssl
-   - KONG_LICENSE_DATA=${KONG_LICENSE_DATA} 
-   - KONG_VITALS=off
-   - KONG_STATUS_LISTEN=0.0.0.0:8100
+  postgres:
+    image: postgres:9.6
+    restart: always
+    container_name: postgres
+    hostname: postgres
+    environment:
+      - POSTGRES_USER=kong
+      - POSTGRES_DB=kong
+      - POSTGRES_PASSWORD=kong
+    ports:
+      - 5432:5432
+    networks:
+      - kong-edu-net
+  db-bootstrap:
+    image: kong/kong-gateway:$KONG_CP_VERSION
+    container_name: db-bootstrap
+    depends_on:
+      - postgres
+    restart: on-failure
+    command: "kong migrations bootstrap"
+    environment:
+      - KONG_DATABASE=postgres
+      - KONG_PG_HOST=postgres
+      - KONG_PG_PASSWORD=kong
+      - KONG_PASSWORD=admin
+      - KONG_LICENSE_DATA=${KONG_LICENSE_DATA}
+    networks:
+      - kong-edu-net      
+  db-migrations:
+    image: kong/kong-gateway:$KONG_CP_VERSION
+    container_name: db-migrations
+    depends_on:
+      - postgres
+      - db-bootstrap
+    restart: on-failure
+    command: "kong migrations up && kong migrations finish"
+    environment:
+      - KONG_DATABASE=postgres
+      - KONG_PG_HOST=postgres
+      - KONG_PG_PASSWORD=kong
+      - KONG_PASSWORD=admin
+      - KONG_LICENSE_DATA=${KONG_LICENSE_DATA}
+    networks:
+      - kong-edu-net      
+  kong-cp:
+    image: kong/kong-gateway:$KONG_CP_VERSION
+    container_name: kong-cp
+    hostname: kong-cp
+    depends_on:
+      - postgres
+      - db-bootstrap
+      - db-migrations
+    restart: always
+    volumes:
+      - /srv/shared/ssl-certs/hybrid:/var/kong/certs
+    ports:
+      - 8001:8001
+      - 8002:8002
+      - 8003:8003
+      - 8004:8004
+      - 8005:8005
+      - 8006:8006
+      - 8444:8444
+      - 8100:8100
+    command: "kong start"
+    environment:
+     - KONG_ROLE=control_plane
+     - KONG_CLUSTER_CERT=/var/kong/certs/cluster.crt
+     - KONG_CLUSTER_CERT_KEY=/var/kong/certs/cluster.key
+     - KONG_LUA_SSL_TRUSTED_CERTIFICATE=/var/kong/certs/cluster.crt
+     - KONG_DATABASE=postgres
+     - KONG_PG_HOST=postgres
+     - KONG_PG_PASSWORD=kong
+     - KONG_PROXY_ACCESS_LOG=/dev/stdout
+     - KONG_ADMIN_ACCESS_LOG=/dev/stdout
+     - KONG_PROXY_ERROR_LOG=/dev/stderr
+     - KONG_ADMIN_ERROR_LOG=/dev/stderr
+     - KONG_ADMIN_LISTEN=0.0.0.0:8001, 0.0.0.0:8444 ssl
+     - KONG_LICENSE_DATA=${KONG_LICENSE_DATA}
+     - KONG_ADMIN_GUI_URL=http://localhost:8002
+     - KONG_VITALS=off
+     - KONG_STATUS_LISTEN=0.0.0.0:8100
+     - KONG_CLUSTER_TELEMETRY_LISTEN=0.0.0.0:8006
+     - KONG_PASSWORD=admin
+     - KONG_ENFORCE_RBAC=on
+     - KONG_ADMIN_GUI_AUTH=basic-auth
+     - KONG_ADMIN_GUI_SESSION_CONF={"secret":"kong", "cookie_name":"kong_cookie", "cookie_secure":false}
+    networks:
+      - kong-edu-net     
+  kong-dp1:
+    image: kong/kong-gateway:$KONG_DP_VERSION
+    container_name: kong-dp1
+    hostname: kong-dp1
+    depends_on:
+      - kong-cp
+    restart: always
+    volumes:
+      - /srv/shared/ssl-certs/hybrid:/var/kong/certs
+    ports:
+     - 8000:8000
+     - 8443:8443
+     - 8101:8100
+    command: "kong start"
+    environment:
+      - KONG_ROLE=data_plane
+      - KONG_CLUSTER_CONTROL_PLANE=kong-cp:8005
+      - KONG_CLUSTER_TELEMETRY_ENDPOINT=kong-cp:8006
+      - KONG_DATABASE=off
+      - KONG_CLUSTER_CERT=/var/kong/certs/cluster.crt
+      - KONG_CLUSTER_CERT_KEY=/var/kong/certs/cluster.key
+      - KONG_LUA_SSL_TRUSTED_CERTIFICATE=/var/kong/certs/cluster.crt
+      - KONG_PROXY_ACCESS_LOG=/dev/stdout
+      - KONG_ADMIN_ACCESS_LOG=/dev/stdout
+      - KONG_PROXY_ERROR_LOG=/dev/stderr
+      - KONG_ADMIN_ERROR_LOG=/dev/stderr
+      - KONG_PROXY_LISTEN=0.0.0.0:8000, 0.0.0.0:8443 ssl
+      - KONG_LICENSE_DATA=${KONG_LICENSE_DATA}
+      - KONG_VITALS=off
+      - KONG_STATUS_LISTEN=0.0.0.0:8100
+    networks:
+      - kong-edu-net      
+  kong-dp2:
+    image: kong/kong-gateway:$KONG_DP_VERSION
+    container_name: kong-dp2
+    hostname: kong-dp2
+    depends_on:
+      - kong-cp
+    restart: always
+    volumes:
+      - /srv/shared/ssl-certs/hybrid:/var/kong/certs
+    ports:
+     - 8010:8000
+     - 8453:8443
+     - 8102:8100
+    command: "kong start"
+    environment:
+      - KONG_ROLE=data_plane
+      - KONG_CLUSTER_CONTROL_PLANE=kong-cp:8005
+      - KONG_DATABASE=off
+      - KONG_CLUSTER_TELEMETRY_ENDPOINT=kong-cp:8006
+      - KONG_CLUSTER_CERT=/var/kong/certs/cluster.crt
+      - KONG_CLUSTER_CERT_KEY=/var/kong/certs/cluster.key
+      - KONG_LUA_SSL_TRUSTED_CERTIFICATE=/var/kong/certs/cluster.crt
+      - KONG_PROXY_ACCESS_LOG=/dev/stdout
+      - KONG_ADMIN_ACCESS_LOG=/dev/stdout
+      - KONG_PROXY_ERROR_LOG=/dev/stderr
+      - KONG_ADMIN_ERROR_LOG=/dev/stderr
+      - KONG_PROXY_LISTEN=0.0.0.0:8000, 0.0.0.0:8443 ssl
+      - KONG_LICENSE_DATA=${KONG_LICENSE_DATA} 
+      - KONG_VITALS=off
+      - KONG_STATUS_LISTEN=0.0.0.0:8100
+    networks:
+      - kong-edu-net
