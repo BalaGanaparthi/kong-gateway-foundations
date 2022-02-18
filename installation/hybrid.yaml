@@ -27,7 +27,7 @@ networks:
   kong-bootstrap:
     networks:
       - kong-edu-net
-    image: kong/kong-gateway:$KONG_CP_VERSION
+    image: kong/kong-gateway:${KONG_CP_VERSION}
     container_name: kong-bootstrap
     hostname: kong-bootstrap
     command: kong migrations bootstrap
@@ -44,7 +44,7 @@ networks:
   kong-migrations:
     networks:
       - kong-edu-net
-    image: kong/kong-gateway:$KONG_CP_VERSION
+    image: kong/kong-gateway:${KONG_CP_VERSION}
     container_name: kong-migrations
     hostname: kong-migrations
     command: "kong migrations up && kong migrations finish"
@@ -61,7 +61,7 @@ networks:
   kong-cp:
     networks:
       - kong-edu-net
-    image: kong/kong-gateway:$KONG_CP_VERSION
+    image: kong/kong-gateway:${KONG_CP_VERSION}
     container_name: kong-cp
     hostname: kong-cp
     user: "${KONG_USER:-kong}"
@@ -156,7 +156,7 @@ networks:
   kong-dp:
     networks:
       - kong-edu-net
-    image: kong/kong-gateway:$KONG_DP_VERSION
+    image: kong/kong-gateway:${KONG_DP_VERSION}
     container_name: kong-dp
     hostname: kong-dp
     depends_on:
