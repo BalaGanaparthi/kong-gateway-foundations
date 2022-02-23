@@ -1,0 +1,96 @@
+version: "3"
+networks:
+ kong-edu-net:
+  name: kong-edu-net
+  driver: bridge
+services:
+ postgres:
+  image: postgres:9.6
+  restart: always
+  container_name: postgres
+  hostname: postgres
+  environment:
+   - POSTGRES_USER=kong
+   - POSTGRES_DB=kong
+   - POSTGRES_PASSWORD=kong
+  ports:
+   - 5432:5432
+  networks:
+   - kong-edu-net
+ kong-bootstrap:
+  image: kong/kong-gateway:2.7-alpine
+  container_name: kong-bootstrap
+  depends_on:
+    - postgres
+  restart: on-failure
+  command: "kong migrations bootstrap"
+  environment:
+    - KONG_DATABASE=postgres
+    - KONG_PG_HOST=postgres
+    - KONG_PG_PASSWORD=kong
+    - KONG_PASSWORD=admin
+    - KONG_LICENSE_DATA=${KONG_LICENSE_DATA}
+  networks:
+   - kong-edu-net
+ kong-load-config:
+  image: kong/kong-gateway:2.7-alpine
+  container_name: kong-load-config
+  depends_on:
+    - kong-bootstrap
+  restart: on-failure
+  command: "kong config db_import /home/kong/loopback.yaml"
+  environment:
+    - KONG_DATABASE=postgres
+    - KONG_PG_HOST=postgres
+    - KONG_PG_PASSWORD=kong
+    - KONG_PASSWORD=admin
+    - KONG_LICENSE_DATA=${KONG_LICENSE_DATA}   
+  volumes:
+   - /srv/shared/misc:/home/kong
+  networks:
+   - kong-edu-net  
+ kong-ee:
+  image: kong/kong-gateway:2.7-alpine
+  container_name: kong-ee
+  hostname: kong-ee
+  depends_on:
+    - postgres
+    - kong-bootstrap
+    - kong-load-config
+  restart: always
+  volumes:
+   - /tmp/:/tmp
+  ports:
+   - 8000:8000
+   - 8001:8001
+   - 8002:8002
+   - 8003:8003
+   - 8004:8004
+   - 8005:8005
+   - 8006:8006
+   - 8443:8443
+   - 8444:8444
+   - 8445:8445
+   - 8446:8446
+   - 8447:8447
+   - 8100:8100
+  command: "kong start"
+  environment:
+   - KONG_DATABASE=postgres
+   - KONG_PG_HOST=postgres
+   - KONG_PG_PASSWORD=kong
+   - KONG_PROXY_ACCESS_LOG=/dev/stdout
+   - KONG_ADMIN_ACCESS_LOG=/dev/stdout
+   - KONG_PROXY_ERROR_LOG=/dev/stderr
+   - KONG_ADMIN_ERROR_LOG=/dev/stderr
+   - KONG_ADMIN_LISTEN=127.0.0.1:8001, 127.0.0.1:8444 ssl
+   - KONG_LICENSE_DATA=${KONG_LICENSE_DATA}
+   - KONG_ADMIN_GUI_URL=http://localhost:8002
+   - KONG_VITALS=off
+   - KONG_STATUS_LISTEN=0.0.0.0:8100
+   - KONG_PASSWORD=admin
+   - KONG_ENFORCE_RBAC=on
+   - KONG_ADMIN_GUI_AUTH=basic-auth
+   - KONG_ADMIN_GUI_SESSION_CONF={"secret":"kong", "cookie_name":"kong_cookie", "cookie_secure":false}
+  networks:
+   - kong-edu-net
