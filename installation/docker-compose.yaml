@@ -39,7 +39,7 @@ services:
   kong-migrations:
     networks:
       - training-kong-net
-    image: kong/kong-gateway:2.4.1.1-alpine
+    image: kong/kong-gateway:2.8-alpine
     container_name: kong-migrations
     hostname: kong-migrations
     command: kong migrations bootstrap
@@ -56,7 +56,7 @@ services:
   kong-cp:
     networks:
       - training-kong-net
-    image: kong/kong-gateway:2.4.1.1-alpine
+    image: kong/kong-gateway:2.8-alpine
     container_name: kong-cp
     hostname: kong-cp
     user: "${KONG_USER:-kong}"
@@ -151,7 +151,7 @@ services:
   kong-dp:
     networks:
       - training-kong-net
-    image: kong/kong-gateway:2.4.1.1-alpine
+    image: kong/kong-gateway:2.8-alpine
     container_name: kong-dp
     hostname: kong-dp
     depends_on:
