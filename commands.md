@@ -1,43 +1,242 @@
+# 01 - Kong Gateway Installation
 
-> tmux set mouse off
-
-# 02 - Kong Gateway Installation
+## Task: Obtain Kong docker compose file and certificates
 ./setup-docker.sh
 git clone https://github.com/kong-education/kong-gateway-operations.git
 cd kong-gateway-operations/installation
 tree
 
+## Task: Move SSL certificates 
 sudo cp -R ssl-certs /srv/shared
+
+## Task: Instantiate log files and deploy Kong
 mkdir -p /srv/shared/logs
 touch $(grep '/srv/shared/logs/' docker-compose.yaml|awk '{print $2}'|xargs)
 chmod a+w /srv/shared/logs/*
 docker-compose up -d
 
-echo $KONG_ADMIN_API_URI
-http --headers GET $KONG_ADMIN_API_URI
+## Training Lab Environment
+env | grep KONG_ | grep -v SERVICE | sort
 
+## Task: Verify Admin API
+http --headers GET kongcluster:8001
+### curl -I -X GET kongcluster:8001
+
+## Task: Verify Kong Manager 
 echo $KONG_MANAGER_URI
+
+## Task: Apply the licence & Recreate the CP
 http POST "$KONG_ADMIN_API_URI/licenses" payload=@/etc/kong/license.json
+### curl -X POST kongcluster:8001/licenses -F "payload=@/etc/kong/license.json"
 docker-compose stop kong-cp; docker-compose rm -f kong-cp; docker-compose up -d kong-cp
 
-sed -ie "s|KONG_ADMIN_API_URI|$KONG_ADMIN_API_URI|g" deck/deck.yaml
-deck diff --config deck/deck.yaml -s deck/default-entities.yaml --workspace default
-deck sync --config deck/deck.yaml -s deck/default-entities.yaml --workspace default
+## Task: Save Kong configuration using decK
+sed -i "s|KONG_ADMIN_API_URI|$KONG_ADMIN_API_URI|g" deck/deck.yaml
 
-__Manual step: Enable Dev Portal__
+deck --config deck/deck.yaml \
+  dump --output-file deck/gwopslab.yaml \
+       --workspace default
 
-curl --cacert /srv/shared/ssl-certs/rootCA.pem -X POST "$KONG_PORTAL_API_URI/default/register" \
--H 'Content-Type: application/json' \
--D 'Kong-Admin-Token: password' \
---data-raw '{"email":"myemail@example.com",
- "password":"password",
- "meta":"{\"full_name\":\"Dev E. Loper\"}"
-}'
+## Task: Sync updates and view config in Kong Manager
 
-curl --cacert /srv/shared/ssl-certs/rootCA.pem -X PATCH "$KONG_ADMIN_API_URI/default/developers/myemail@example.com" \
---header 'Content-Type: application/json' \
---header 'Kong-Admin-Token: password' \
---data-raw '{"status": 0}'
+deck --config deck/deck.yaml \
+  diff --state deck/sampledump.yaml \
+       --workspace default
+
+deck --config deck/deck.yaml \
+  sync --state deck/sampledump.yaml \
+       --workspace default
+
+## Task: Restore Kong configuration using decK
+deck sync --config deck/deck.yaml \
+  --state deck/gwopslab.yaml \
+  --workspace default
+
+## Task : Create a Developer Account
+
+http POST $KONG_PORTAL_API_URI/default/register <<< '{"email":"myemail@example.com",
+                                                      "password":"password",
+                                                      "meta":"{\"full_name\":\"Dev E. Loper\"}"
+                                                     }'
+
+### curl -X POST "$KONG_PORTAL_API_URI/default/register" \
+      -H 'Content-Type: application/json' \
+      --data-raw '{"email":"myemail@example.com",
+      "password":"password",
+      "meta":"{\"full_name\":\"Dev E. Loper\"}"
+                  }'
+
+## Task: Task: Approve the Developer
+http PATCH "$KONG_ADMIN_API_URI/default/developers/myemail@example.com" <<< '{"status": 0}'
+
+### curl -X PATCH "$KONG_ADMIN_API_URI/default/developers/myemail@example.com" \
+      --header 'Content-Type: application/json' \
+      --data-raw '{"status": 0}'
+
+## Task: Add an API Spec to test
+http --form POST kongcluster:8001/files \
+  "path=specs/jokes.one.oas.yaml" \
+  "contents=@jokes1OAS.yaml"
+
+### curl -X POST kongcluster:8001/files \
+      -F "path=specs/jokes.one.oas.yaml" \
+      -F "contents=@jokes1OAS.yaml" 
+
+
+
+## Task: Create a dedicated docker network and a database container
+docker network create kong-edu-net
+docker run -d --name kong-ee-database --network kong-edu-net \
+  -p 5432:5432 \
+  -e "POSTGRES_USER=kong" \
+  -e "POSTGRES_DB=kong-edu" \
+  -e "POSTGRES_PASSWORD=kong" \
+  postgres:9.6
+
+## Task: Bootstrap the Database for Kong 2.5.1.2
+docker run --rm --network kong-edu-net \
+  -e "KONG_DATABASE=postgres" \
+  -e "KONG_PG_HOST=kong-ee-database" \
+  -e "KONG_PG_PORT=5432" \
+  -e "KONG_LICENSE_DATA=$KONG_LICENSE_DATA" \
+  -e "KONG_PG_PASSWORD=kong" \
+  -e "KONG_PG_USER=kong" \
+  -e "KONG_PG_PASSWORD=kong" \
+  -e "KONG_PASSWORD=admin" \
+  -e "KONG_PG_DATABASE=kong-edu" \
+  kong/kong-gateway:2.5.1.2-alpine kong migrations bootstrap
+
+## Task: Start Kong Gateway 2.5.1.2
+docker run -d --name kong-ee-edu --network kong-edu-net \
+  -e "KONG_DATABASE=postgres" \
+  -e "KONG_PG_HOST=kong-ee-database" \
+  -e "KONG_PG_PORT=5432" \
+  -e "KONG_PG_PASSWORD=kong" \
+  -e "KONG_PASSWORD=admin" \
+  -e "KONG_PG_DATABASE=kong-edu" \
+  -e "KONG_PROXY_ACCESS_LOG=/dev/stdout" \
+  -e "KONG_ADMIN_ACCESS_LOG=/dev/stdout" \
+  -e "KONG_PROXY_ERROR_LOG=/dev/stderr" \
+  -e "KONG_ADMIN_ERROR_LOG=/dev/stderr" \
+  -e "KONG_ADMIN_LISTEN=0.0.0.0:8001" \
+  -e "KONG_LICENSE_DATA=$KONG_LICENSE_DATA" \
+  -e "KONG_PASSWORD=admin" \
+  -e "KONG_ADMIN_GUI_URL=http://localhost:8002" \
+  -p 8000-8004:8000-8004 \
+  -p 8443-8445:8443-8445 \
+  kong/kong-gateway:2.5.1.2-alpine
+
+## Task: Check Version & create a simple service/route
+http GET kongcluster:8001 | jq .version
+### curl -sX GET kongcluster:8001 | jq .version
+
+http POST kongcluster:8001/services \
+  name=httpbin \
+  url=https://httpbin.org/anything
+
+### curl -X POST kongcluster:8001/services \
+      -d "name=httpbin" \
+      -d "url=https://httpbin.org/anything"
+
+http POST kongcluster:8001/services/httpbin/routes \
+    name=httpbin \
+    paths:='["/httpbin"]'
+
+### curl -X POST kongcluster:8001/services/httpbin/routes \
+      -d 'name=httpbin' \
+      -d 'paths[]=/httpbin'
+
+## Task: Run the 2.6 migrations
+docker run --rm --network kong-edu-net \
+  -e "KONG_DATABASE=postgres" \
+  -e "KONG_PG_HOST=kong-ee-database" \
+  -e "KONG_PG_PORT=5432" \
+  -e "KONG_PG_DATABASE=kong-edu" \
+  -e "KONG_LICENSE_DATA=$KONG_LICENSE_DATA" \
+  -e "KONG_PG_PASSWORD=kong" \
+  -e "KONG_PASSWORD=admin" \
+  kong/kong-gateway:2.6.0.1-alpine \
+  kong migrations up
+
+## Task: Complete the 2.6 migrations
+docker run --rm --network kong-edu-net \
+  -e "KONG_DATABASE=postgres" \
+  -e "KONG_PG_HOST=kong-ee-database" \
+  -e "KONG_PG_DATABASE=kong-edu" \
+  -e "KONG_PG_PORT=5432" \
+  -e "KONG_LICENSE_DATA=$KONG_LICENSE_DATA" \
+  -e "KONG_PG_PASSWORD=kong" \
+  -e "KONG_PASSWORD=admin" \
+  kong/kong-gateway:2.6.0.1-alpine kong migrations finish
+
+  docker container rm $(docker container stop kong-ee-edu)
+
+Task: Start the new 2.6 container:
+
+docker run -d --name kong-ee-edu --network kong-edu-net \
+  -e "KONG_DATABASE=postgres" \
+  -e "KONG_PG_HOST=kong-ee-database" \
+  -e "KONG_PG_PORT=5432" \
+  -e "KONG_PG_PASSWORD=kong" \
+  -e "KONG_PG_HOST=kong-ee-database" \
+  -e "KONG_PG_DATABASE=kong-edu" \
+  -e "KONG_PROXY_ACCESS_LOG=/dev/stdout" \
+  -e "KONG_ADMIN_ACCESS_LOG=/dev/stdout" \
+  -e "KONG_PROXY_ERROR_LOG=/dev/stderr" \
+  -e "KONG_ADMIN_ERROR_LOG=/dev/stderr" \
+  -e "KONG_ADMIN_LISTEN=0.0.0.0:8001" \
+  -e "KONG_LICENSE_DATA=$KONG_LICENSE_DATA" \
+  -e "KONG_PASSWORD=admin" \
+  -e "KONG_ADMIN_GUI_URL=http://localhost:8002" \
+  -p 8000-8004:8000-8004 \
+  -p 8443-8445:8443-8445 \
+  kong/kong-gateway:2.6.0.1-alpine
+
+## Task: Confirm upgrade and persistence of data
+http --headers GET kongcluster:8000/httpbin
+### curl -IX GET kongcluster:8000/httpbin
+
+## Task: Upgrade Using Docker Compose
+export KONG_VERSION="2.5.1.2-alpine"
+docker-compose -f kongupgdemo.yaml up -d
+
+http GET kongcluster:8001 kong-admin-token:admin | \
+  jq '.hostname + " " + .version'
+
+### curl -sX GET kongcluster:8001 -H kong-admin-token:admin | \
+      jq '.hostname + " " + .version'
+
+http POST kongcluster:8001/services \
+  kong-admin-token:admin \
+  name=httpbin \
+  url=https://httpbin.org/anything
+
+### curl -X POST kongcluster:8001/services \
+      -H kong-admin-token:admin \
+      -d "name=httpbin" \
+      -d "url=https://httpbin.org/anything"
+
+http POST kongcluster:8001/services/httpbin/routes \
+  kong-admin-token:admin \
+  name=httpbin \
+  paths:='["/httpbin"]'
+
+### curl -X POST kongcluster:8001/services/httpbin/routes \
+      -H kong-admin-token:admin \
+      -d 'name=httpbin' \
+      -d 'paths[]=/httpbin'
+
+http --headers GET kongcluster:8000/httpbin
+### curl -IX GET kongcluster:8000/httpbin
+
+
+
+
+
+
+
+
+
 
 # 04 - Securing Kong
 
