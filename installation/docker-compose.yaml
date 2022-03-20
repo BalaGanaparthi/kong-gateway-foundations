@@ -6,16 +6,16 @@ networks:
     driver: bridge
 
 services:
-#   keycloak:
-#     image:
-#     restart: always
-#     container_name: kong-keycloak
-#     environment:
-#       - KEYCLOAK_USER=admin
-#       - KEYCLOAK_PASSWORD=test
-#     ports:
-# #       - 8080:8080
-#       - ${KONG_KEYCLOAK_PORT}:8080
+# keycloak:
+#   image:
+#   restart: always
+#   container_name: kong-keycloak
+#   environment:
+#     - KEYCLOAK_USER=admin
+#     - KEYCLOAK_PASSWORD=test
+#   ports:
+#      - 8080:8080
+#      - ${KONG_KEYCLOAK_PORT}:8080
 
   db:
     networks:
@@ -190,14 +190,14 @@ services:
       - "8443:8443/tcp"
       - "8101:8101/tcp"
 
-  httpbin:
-    networks:
-      - training-kong-net
-    image: "kennethreitz/httpbin"
-    container_name: httpbin
-    hostname: httpbin
-#    ports:
-#      - "80:80/tcp"
+# httpbin:
+#   networks:
+#     - training-kong-net
+#   image: "kennethreitz/httpbin"
+#   container_name: httpbin
+#   hostname: httpbin
+#   ports:
+#     - "80:80/tcp"
 
   smtp-server:
     networks:
