@@ -239,32 +239,52 @@ docker-compose up -d
 # 02 - Securing Kong Gatway
 
 ## Task: Create New Role my_role and add Permissions
-http POST $KONG_ADMIN_API_URI/rbac/roles name=my_role
-### curl -X POST $KONG_ADMIN_API_URI/rbac/roles -d name=my_role
+http POST kongcluster:8001/rbac/roles name=my_role
+### curl -sX POST kongcluster:8001/rbac/roles -d name=my_role | jq
 
-http POST $KONG_ADMIN_API_URI/rbac/roles/my_role/endpoints/ \
+http POST kongcluster:8001/rbac/roles/my_role/endpoints/ \
   	endpoint=* \
   	workspace=default \
   	actions=*
 
-### curl -X POST $KONG_ADMIN_API_URI/rbac/roles/my_role/endpoints/ \
+### curl -sX POST kongcluster:8001/rbac/roles/my_role/endpoints/ \
   	  -d endpoint=* \
   	  -d workspace=default \
-  	  -d actions=*
+  	  -d actions=* \
+      | jq  
 
-## Lab: Configure RBAC User
-http post $KONG_ADMIN_API_URI/rbac/users name=my-super-admin user_token="my_token"
+## Task: Create an RBAC user called 'my-super-admin'
+http post kongcluster:8001/rbac/users name=my-super-admin user_token="my_token"
+### curl -sX POST kongcluster:8001/rbac/users \
+      -d name=my-super-admin \
+      -d user_token="my_token" \
+      | jq
 
-MY_SUPER_ADMIN_TOKEN=$2b$09$ZPKVKuPiICSaIPoABRdeOeVZCscWDrsUfyxmyUv.nQyCowW/c2s9y
-MY_SUPER_ADMIN_TOKEN=$(http get $KONG_ADMIN_API_URI/rbac/users/my-super-admin | jq .user_token | xargs)
+MY_SUPER_ADMIN_TOKEN=$(http GET kongcluster:8001/rbac/users/my-super-admin | jq .user_token | xargs)
 echo $MY_SUPER_ADMIN_TOKEN
+http GET kongcluster:8001/rbac/users/my-super-admin/roles
+### curl -sX GET kongcluster:8001/rbac/users/my-super-admin/roles | jq
+http POST kongcluster:8001/rbac/users/my-super-admin/roles roles='my_role'
+### curl -sX POST kongcluster:8001/rbac/users/my-super-admin/roles -d roles='my_role' | jq
+http POST kongcluster:8001/rbac/users/my-super-admin/roles roles='super-admin'
+### curl -sX POST kongcluster:8001/rbac/users/my-super-admin/roles -d roles='super-admin' | jq
+http GET kongcluster:8001/rbac/users/my-super-admin/roles
+### curl -sX GET kongcluster:8001/rbac/users/my-super-admin/roles | jq
 
-http get $KONG_ADMIN_API_URI/rbac/users/my-super-admin/roles
-http POST $KONG_ADMIN_API_URI/rbac/users/my-super-admin/roles roles='my_role'
-http get $KONG_ADMIN_API_URI/rbac/users/my-super-admin/roles
+http POST $KONG_ADMIN_API_URI/rbac/users \
+  name=super-admin \
+  user_token="super-admin"
 
-http post $KONG_ADMIN_API_URI/rbac/users name=super-admin user_token="super-admin"
-http get $KONG_ADMIN_API_URI/rbac/users/super-admin/roles
+### curl -sX POST $KONG_ADMIN_API_URI/rbac/users \
+      -d name=super-admin \
+      -d user_token="super-admin" \
+      | jq
+
+http GET $KONG_ADMIN_API_URI/rbac/users/super-admin/roles
+### curl -sX GET $KONG_ADMIN_API_URI/rbac/users/super-admin/roles | jq
+
+
+====
 
     #KONG_ENFORCE_RBAC: "on"
     #KONG_ADMIN_GUI_AUTH: "basic-auth"
