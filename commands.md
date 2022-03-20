@@ -226,8 +226,15 @@ http POST kongcluster:8001/services/httpbin/routes \
       -d 'name=httpbin' \
       -d 'paths[]=/httpbin'
 
+export KONG_VERSION="2.6.0.1-alpine"
+docker-compose -f kongupgdemo.yaml up -d
+
 http --headers GET kongcluster:8000/httpbin
 ### curl -IX GET kongcluster:8000/httpbin
+
+docker-compose -f kongupgdemo.yaml down -v
+docker-compose up -d
+
 
 
 
