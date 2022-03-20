@@ -223,8 +223,8 @@ http POST kongcluster:8001/services/httpbin/routes \
 
 ### curl -X POST kongcluster:8001/services/httpbin/routes \
       -H kong-admin-token:admin \
-      -d 'name=httpbin' \
-      -d 'paths[]=/httpbin'
+      -d "name=httpbin" \
+      -d "paths[]=/httpbin"
 
 export KONG_VERSION="2.6.0.1-alpine"
 docker-compose -f kongupgdemo.yaml up -d
@@ -236,37 +236,23 @@ docker-compose -f kongupgdemo.yaml down -v
 docker-compose up -d
 
 
+# 02 - Securing Kong Gatway
 
+## Task: Create New Role my_role and add Permissions
+http POST $KONG_ADMIN_API_URI/rbac/roles name=my_role
+### curl -X POST $KONG_ADMIN_API_URI/rbac/roles -d name=my_role
 
-
-
-
-
-
-
-
-# 04 - Securing Kong
-
-```ThroughGUI
-To create new roles and permissions
-1. Log into Kong Manager
-2. Navigate to Teams > Roles
-3. Click View next to Default workspace
-   You will see existing Roles
-4. Click Add Role and name it my_role
-5. Click Add Permission
-   Notice you can have very granular CRUD permissions for any endpoint
-6. Select permissions as illustrated
-7. Click Add Permissions to Role
-8. Click Create
-```
-Alternative:
-http $KONG_ADMIN_API_URI/rbac/roles name=my_role
-http $KONG_ADMIN_API_URI/rbac/roles/my_role/endpoints/ \
+http POST $KONG_ADMIN_API_URI/rbac/roles/my_role/endpoints/ \
   	endpoint=* \
   	workspace=default \
   	actions=*
 
+### curl -X POST $KONG_ADMIN_API_URI/rbac/roles/my_role/endpoints/ \
+  	endpoint=* \
+  	workspace=default \
+  	actions=*
+
+## Lab: Configure RBAC User
 http post $KONG_ADMIN_API_URI/rbac/users name=my-super-admin user_token="my_token"
 
 MY_SUPER_ADMIN_TOKEN=$2b$09$ZPKVKuPiICSaIPoABRdeOeVZCscWDrsUfyxmyUv.nQyCowW/c2s9y

@@ -50,7 +50,7 @@ services:
       KONG_PG_USER: kong
       KONG_PG_PASSWORD: kong
       KONG_PASSWORD: password
-      #KONG_LICENSE_DATA: ${KONG_LICENSE_DATA}
+      KONG_LICENSE_DATA: ${KONG_LICENSE_DATA}
     restart: on-failure
 
   kong-cp:
@@ -100,7 +100,7 @@ services:
       KONG_STATUS_SSL_CERT: "/srv/shared/ssl/wildcard.pem"
       KONG_ANONYMOUS_REPORTS: "off"
       KONG_VITALS: "on"
-      #KONG_LICENSE_DATA: ${KONG_LICENSE_DATA}
+      KONG_LICENSE_DATA: ${KONG_LICENSE_DATA}
       #KONG_ENFORCE_RBAC: "on"
       # KONG_ADMIN_API_URI: "https://api.kong.lan:8444"
       KONG_ADMIN_API_URI: ${KONG_ADMIN_API_URI}
