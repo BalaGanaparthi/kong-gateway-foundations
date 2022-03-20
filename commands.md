@@ -248,9 +248,9 @@ http POST $KONG_ADMIN_API_URI/rbac/roles/my_role/endpoints/ \
   	actions=*
 
 ### curl -X POST $KONG_ADMIN_API_URI/rbac/roles/my_role/endpoints/ \
-  	endpoint=* \
-  	workspace=default \
-  	actions=*
+  	  -d endpoint=* \
+  	  -d workspace=default \
+  	  -d actions=*
 
 ## Lab: Configure RBAC User
 http post $KONG_ADMIN_API_URI/rbac/users name=my-super-admin user_token="my_token"
