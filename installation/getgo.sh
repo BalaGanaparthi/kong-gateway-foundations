@@ -2,7 +2,7 @@
 
 cd ~/
 ./setup-docker.sh
-git clone https://github.com/kong-education/kong-gateway-operations.git
+git clone https://github.com/gigaprimatus/kong-gateway-operations.git
 cd kong-gateway-operations/installation
 cp -R ssl-certs /srv/shared
 mkdir -p /srv/shared/logs
