@@ -2,7 +2,7 @@
 
 ## Task: Obtain Kong docker compose file and certificates
 ./setup-docker.sh
-git clone https://github.com/kong-education/kong-gateway-operations.git
+git clone https://github.com/gigaprimatus/kong-gateway-operations.git
 cd kong-gateway-operations/installation
 tree
 
@@ -20,7 +20,7 @@ env | grep KONG_ | grep -v SERVICE | sort
 
 ## Task: Verify Admin API
 http --headers GET kongcluster:8001
-### curl -I -X GET kongcluster:8001
+### curl -IX GET kongcluster:8001
 
 ## Task: Verify Kong Manager 
 echo $KONG_MANAGER_URI
@@ -31,6 +31,7 @@ http POST "$KONG_ADMIN_API_URI/licenses" payload=@/etc/kong/license.json
 docker-compose stop kong-cp; docker-compose rm -f kong-cp; docker-compose up -d kong-cp
 
 ## Task: Save Kong configuration using decK
+cd ~/kong-gateway-operations/installation
 sed -i "s|KONG_ADMIN_API_URI|$KONG_ADMIN_API_URI|g" deck/deck.yaml
 
 deck --config deck/deck.yaml \
@@ -47,9 +48,6 @@ deck --config deck/deck.yaml \
        --workspace default
 
 ## Task: Restore Kong configuration using decK
-deck sync --config deck/deck.yaml \
-  --state deck/gwopslab.yaml \
-  --workspace default
 
 ## Task : Create a Developer Account
 http POST $KONG_PORTAL_API_URI/default/register <<< '{"email":"myemail@example.com",
