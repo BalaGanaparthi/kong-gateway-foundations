@@ -6,8 +6,8 @@ networks:
     driver: bridge
 
 services:
-# keycloak:
-#   image:
+keycloak:
+# image:
 #   restart: always
 #   container_name: kong-keycloak
 #   environment:
@@ -50,7 +50,7 @@ services:
       KONG_PG_USER: kong
       KONG_PG_PASSWORD: kong
       KONG_PASSWORD: password
-      KONG_LICENSE_DATA: ${KONG_LICENSE_DATA}
+    # KONG_LICENSE_DATA: ${KONG_LICENSE_DATA}
     restart: on-failure
 
   kong-cp:
@@ -100,7 +100,7 @@ services:
       KONG_STATUS_SSL_CERT: "/srv/shared/ssl/wildcard.pem"
       KONG_ANONYMOUS_REPORTS: "off"
       KONG_VITALS: "on"
-      KONG_LICENSE_DATA: ${KONG_LICENSE_DATA}
+    # KONG_LICENSE_DATA: ${KONG_LICENSE_DATA}
       #KONG_ENFORCE_RBAC: "on"
       # KONG_ADMIN_API_URI: "https://api.kong.lan:8444"
       KONG_ADMIN_API_URI: ${KONG_ADMIN_API_URI}
@@ -173,7 +173,7 @@ services:
       KONG_PROXY_ACCESS_LOG: "/srv/shared/logs/proxy_access.log"
       KONG_PROXY_ERROR_LOG: "/srv/shared/logs/proxy_error.log"
       KONG_DATABASE: "off"
-      KONG_LICENSE_DATA: ${KONG_LICENSE_DATA}
+    # KONG_LICENSE_DATA: ${KONG_LICENSE_DATA}
       KONG_ANONYMOUS_REPORTS: "off"
       KONG_VITALS: "on"
       KONG_SSL_CERT_KEY: "/srv/shared/ssl/wildcard.key"
@@ -206,5 +206,5 @@ services:
     container_name: smtp-server
     hostname: smtp-server
     ports:
-      #- "25:1025/tcp"
+    # - "25:1025/tcp"
       - "1080:1080/tcp"
