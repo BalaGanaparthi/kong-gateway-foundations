@@ -6,16 +6,16 @@ networks:
     driver: bridge
 
 services:
-keycloak:
-# image:
-#   restart: always
-#   container_name: kong-keycloak
-#   environment:
-#     - KEYCLOAK_USER=admin
-#     - KEYCLOAK_PASSWORD=test
-#   ports:
-#      - 8080:8080
-#      - ${KONG_KEYCLOAK_PORT}:8080
+# keycloak:
+#   image:
+#     restart: always
+#     container_name: kong-keycloak
+#     environment:
+#       - KEYCLOAK_USER=admin
+#       - KEYCLOAK_PASSWORD=test
+#     ports:
+#       - 8080:8080
+#       - ${KONG_KEYCLOAK_PORT}:8080
 
   db:
     networks:
