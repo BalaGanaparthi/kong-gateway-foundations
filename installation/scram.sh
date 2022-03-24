@@ -10,6 +10,7 @@ cp -R ssl-certs /srv/shared
 mkdir -p /srv/shared/logs
 touch $(grep '/srv/shared/logs/' docker-compose.yaml|awk '{print $2}'|xargs)
 chmod a+w /srv/shared/logs/*
+docker-compose down -v
 docker-compose up -d
 sleep 8
 http POST "kongcluster:8001/licenses" payload=@/etc/kong/license.json
