@@ -49,6 +49,12 @@ deck --config deck/deck.yaml \
 
 ## Task: Restore Kong configuration using decK
 
+## Task: Enable the Developer Portal:
+http PATCH kongcluster:8001/workspaces/default config.portal=true
+### curl -sX PATCH kongcluster:8001/workspaces/default \
+      -d "config.portal=true" \
+      | jq
+
 ## Task : Create a Developer Account
 http POST $KONG_PORTAL_API_URI/default/register <<< '{"email":"myemail@example.com",
                                                       "password":"password",
