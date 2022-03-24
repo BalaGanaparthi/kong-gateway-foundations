@@ -1,6 +1,9 @@
-#!/bin/bash 
+#!/usr/bin/env bash
 cd ~/
-./setup-docker.sh
+mkdir -p ~/.docker
+curl -so ~/.docker/ca.pem http://docker:9000/ca.pem
+curl -so ~/.docker/cert.pem http://docker:9000/cert.pem
+curl -so ~/.docker/key.pem http://docker:9000/key.pem
 git clone https://github.com/gigaprimatus/kong-gateway-operations.git
 cd kong-gateway-operations/installation
 cp -R ssl-certs /srv/shared
