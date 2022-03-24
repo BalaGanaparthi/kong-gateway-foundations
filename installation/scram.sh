@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-red=$(tput setaf 1):wq
+red=$(tput setaf 1)
 normal=$(tput sgr0)
 
 printf "\n${red}Setting up Kong Gateway Operations Lab Envrinment.${normal}"
