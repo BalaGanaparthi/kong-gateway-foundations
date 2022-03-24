@@ -12,10 +12,11 @@ mkdir -p /srv/shared/logs
 touch $(grep '/srv/shared/logs/' docker-compose.yaml|awk '{print $2}'|xargs)
 chmod a+w /srv/shared/logs/*
 docker-compose down -v
+unset KONG-LICENSE_DATA
 docker-compose up -d
 sleep 8
 http POST "kongcluster:8001/licenses" payload=@/etc/kong/license.json
 docker-compose stop kong-cp; docker-compose rm -f kong-cp; docker-compose up -d kong-cp
 sleep 8
-http --headers GET kongcluster:8001 | jq .version
+http --headers GET kongcluster:8001 | grep Server
 env | grep KONG | sort
