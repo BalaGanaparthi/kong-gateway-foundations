@@ -48,6 +48,10 @@ deck --config deck/deck.yaml \
        --workspace default
 
 ## Task: Restore Kong configuration using decK
+deck sync --config deck/deck.yaml \
+  --state deck/gwopslab.yaml \
+  --workspace default
+
 
 ## Task: Enable the Developer Portal:
 http PATCH kongcluster:8001/workspaces/default config.portal=true
