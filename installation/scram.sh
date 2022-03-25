@@ -36,6 +36,8 @@ sleep 8
 printf "\n${red}Checking Admin API.${normal}\n"
 http --headers GET kongcluster:8001 | grep Server
 # curl -IsX GET kongcluster:8001 | grep Server
+
+
 printf "\n${red}Copying the script to user path.${normal}\n"
 mkdir -p ~/.local/bin
 cp scram.sh ~/.local/bin/
