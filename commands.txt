@@ -7,7 +7,7 @@ cd kong-gateway-operations/installation
 tree
 
 ## Task: Move SSL certificates 
-sudo cp -R ssl-certs /srv/shared
+cp -R ssl-certs /srv/shared
 
 ## Task: Instantiate log files and deploy Kong
 mkdir -p /srv/shared/logs
@@ -25,9 +25,17 @@ http --headers GET kongcluster:8001
 ## Task: Verify Kong Manager 
 echo $KONG_MANAGER_URI
 
-## Task: Apply the licence & Recreate the CP
-http POST "$KONG_ADMIN_API_URI/licenses" payload=@/etc/kong/license.json
-### curl -X POST kongcluster:8001/licenses -F "payload=@/etc/kong/license.json"
+## Task: Task: Apply and review the licence
+http –headers POST kongcluster:8001/licenses \ 
+  payload=@/etc/kong/license.json \ 
+  | grep HTTP
+
+### curl -siX POST kongcluster:8001/licenses \
+      -F payload=@/etc/kong/license.json \
+      | grep HTTP
+
+## Task: Recreate/Restart the CP to enable EE features
+
 docker-compose stop kong-cp; docker-compose rm -f kong-cp; docker-compose up -d kong-cp
 
 ## Task: Save Kong configuration using decK
