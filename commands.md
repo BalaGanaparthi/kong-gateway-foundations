@@ -36,7 +36,48 @@ http –headers POST kongcluster:8001/licenses \
 
 ## Task: Recreate/Restart the CP to enable EE features
 
-docker-compose stop kong-cp; docker-compose rm -f kong-cp; docker-compose up -d kong-cp
+docker-compose stop kong-cp
+docker-compose rm -f kong-cp
+docker-compose up -d kong-cp
+
+## Task: Enable the Developer Portal:
+http --form PATCH kongcluster:8001/workspaces/default config.portal=true
+### curl -sX PATCH kongcluster:8001/workspaces/default \
+      -d "config.portal=true" \
+      | jq
+
+## Task : Create a Developer Account
+http POST $KONG_PORTAL_API_URI/default/register <<< '{"email":"myemail@example.com",
+                                                      "password":"password",
+                                                      "meta":"{\"full_name\":\"Dev E. Loper\"}"
+                                                     }'
+
+### curl -X POST "$KONG_PORTAL_API_URI/default/register" \
+      -H 'Content-Type: application/json' \
+      --data-raw '{"email":"myemail@example.com",
+      "password":"password",
+      "meta":"{\"full_name\":\"Dev E. Loper\"}"
+                  }' \
+      | jq            
+
+## Task: Task: Approve the Developer
+http PATCH "$KONG_ADMIN_API_URI/default/developers/myemail@example.com" <<< '{"status": 0}'
+
+### curl -sX PATCH "$KONG_ADMIN_API_URI/default/developers/myemail@example.com" \
+      --header 'Content-Type: application/json' \
+      --data-raw '{"status": 0}'
+
+## Task: Add an API Spec to test
+http --form POST kongcluster:8001/files \
+  "path=specs/jokes.one.oas.yaml" \
+  "contents=@jokes1OAS.yaml"
+
+### curl -sX POST kongcluster:8001/files \
+      -F "path=specs/jokes.one.oas.yaml" \
+      -F "contents=@jokes1OAS.yaml" \
+      | jq
+
+## Using decK
 
 ## Task: Save Kong configuration using decK
 cd ~/kong-gateway-operations/installation
@@ -61,40 +102,12 @@ deck sync --config deck/deck.yaml \
   --workspace default
 
 
-## Task: Enable the Developer Portal:
-http PATCH kongcluster:8001/workspaces/default config.portal=true
-### curl -sX PATCH kongcluster:8001/workspaces/default \
-      -d "config.portal=true" \
-      | jq
 
-## Task : Create a Developer Account
-http POST $KONG_PORTAL_API_URI/default/register <<< '{"email":"myemail@example.com",
-                                                      "password":"password",
-                                                      "meta":"{\"full_name\":\"Dev E. Loper\"}"
-                                                     }'
 
-### curl -X POST "$KONG_PORTAL_API_URI/default/register" \
-      -H 'Content-Type: application/json' \
-      --data-raw '{"email":"myemail@example.com",
-      "password":"password",
-      "meta":"{\"full_name\":\"Dev E. Loper\"}"
-                  }'
 
-## Task: Task: Approve the Developer
-http PATCH "$KONG_ADMIN_API_URI/default/developers/myemail@example.com" <<< '{"status": 0}'
 
-### curl -X PATCH "$KONG_ADMIN_API_URI/default/developers/myemail@example.com" \
-      --header 'Content-Type: application/json' \
-      --data-raw '{"status": 0}'
 
-## Task: Add an API Spec to test
-http --form POST kongcluster:8001/files \
-  "path=specs/jokes.one.oas.yaml" \
-  "contents=@jokes1OAS.yaml"
 
-### curl -X POST kongcluster:8001/files \
-      -F "path=specs/jokes.one.oas.yaml" \
-      -F "contents=@jokes1OAS.yaml" 
 
 ## Task: Create a dedicated docker network and a database container
 docker network create kong-edu-net

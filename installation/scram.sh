@@ -34,9 +34,11 @@ printf "\n${red}Recreating Contral Plane.${normal}\n"
 docker-compose stop kong-cp; docker-compose rm -f kong-cp; docker-compose up -d kong-cp
 sleep 8
 printf "\n${red}Checking Admin API.${normal}\n"
-http --headers GET kongcluster:8001 | grep Server
-# curl -IsX GET kongcluster:8001 | grep Server
-
+curl -IsX GET kongcluster:8001 | grep Server
+printf "\n${red}Enabling the Developer Portal.${normal}\n"
+curl -siX PATCH kongcluster:8001/workspaces/default -d "config.portal=true" | grep HTTP
+printf "\n${red}Configuring decK.${normal}\n"
+sed -i "s|KONG_ADMIN_API_URI|$KONG_ADMIN_API_URI|g" deck/deck.yaml
 printf "\n${red}Copying the script to user path.${normal}\n"
 mkdir -p ~/.local/bin
 cp scram.sh ~/.local/bin/
@@ -44,4 +46,3 @@ source ~/.profile
 printf "\n${red}Displaying Gateway URIs${normal}\n"
 env | grep KONG | sort
 printf "\n${red}Completed Setting up Kong Gateway Operations Lab Envrinment.${normal}\n\n"
-
