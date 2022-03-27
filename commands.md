@@ -244,8 +244,10 @@ http --headers GET kongcluster:8000/httpbin
 ### curl -IX GET kongcluster:8000/httpbin
 
 ## Task: Clean up Lab
-docker kill $(docker ps -q)
-docker volume prune -f
+
+docker rm -f $(docker ps -a -q) > /dev/null 2>&1
+docker volume rm $(docker volume ls -q) > /dev/null 2>&1
+docker network rm -f kong-edu-net > /dev/null 2>&1
 
 ## Task: Upgrade Using Docker Compose
 export KONG_LICENSE_DATA=`cat "/etc/kong/license.json"`

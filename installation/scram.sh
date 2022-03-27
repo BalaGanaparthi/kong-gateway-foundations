@@ -21,7 +21,9 @@ mkdir -p /srv/shared/logs
 touch $(grep '/srv/shared/logs/' docker-compose.yaml|awk '{print $2}'|xargs)
 chmod a+w /srv/shared/logs/*
 printf "\n${red}Cleaning up previous instances in Docker.${normal}\n"
-docker-compose down -v
+docker rm -f $(docker ps -a -q) > /dev/null 2>&1
+docker volume rm $(docker volume ls -q) > /dev/null 2>&1
+docker network rm -f kong-edu-net > /dev/null 2>&1
 printf "\n${red}Unsetting KONG_LICENSE_DATA environment variable.${normal}"
 if [ -z "KONG_LICENSE_DATA" ]; then unset KONG_LICENSE_DATA; fi
 printf "\n${red}Bringing up Kong Gateway.${normal}\n"
@@ -41,9 +43,12 @@ printf "\n${red}Configuring decK.${normal}\n"
 sed -i "s|KONG_ADMIN_API_URI|$KONG_ADMIN_API_URI|g" deck/deck.yaml
 deck ping
 printf "\n${red}Copying the script to user path.${normal}\n"
-mkdir -p ~/.local/bin
-cp scram.sh ~/.local/bin/
-source ~/.profile
+if [ ! -f "~/.local/bin/scram.sh" ]
+then
+  mkdir -p ~/.local/bin
+  cp ~/kong-gateway-operations/installation/scram.sh ~/.local/bin/
+  source ~/.profile
+fi
 printf "\n${red}Displaying Gateway URIs${normal}\n"
 env | grep KONG | sort
 printf "\n${red}Completed Setting up Kong Gateway Operations Lab Envrinment.${normal}\n\n"

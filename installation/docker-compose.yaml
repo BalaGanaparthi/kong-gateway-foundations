@@ -1,8 +1,8 @@
 version: '2.2'
 
 networks:
-  training-kong-net:
-    name: training-kong-net
+  kong-edu-net:
+    name: kong-edu-net
     driver: bridge
 
 services:
@@ -19,7 +19,7 @@ services:
 
   db:
     networks:
-      - training-kong-net
+      - kong-edu-net
     image: postgres:13.1
     container_name: db
     hostname: db
@@ -38,7 +38,7 @@ services:
 
   kong-migrations:
     networks:
-      - training-kong-net
+      - kong-edu-net
     image: kong/kong-gateway:2.8-alpine
     container_name: kong-migrations
     hostname: kong-migrations
@@ -55,7 +55,7 @@ services:
 
   kong-cp:
     networks:
-      - training-kong-net
+      - kong-edu-net
     image: kong/kong-gateway:2.8-alpine
     container_name: kong-cp
     hostname: kong-cp
@@ -150,7 +150,7 @@ services:
 
   kong-dp:
     networks:
-      - training-kong-net
+      - kong-edu-net
     image: kong/kong-gateway:2.8-alpine
     container_name: kong-dp
     hostname: kong-dp
@@ -192,7 +192,7 @@ services:
 
 # httpbin:
 #   networks:
-#     - training-kong-net
+#     - kong-edu-net
 #   image: "kennethreitz/httpbin"
 #   container_name: httpbin
 #   hostname: httpbin
@@ -201,7 +201,7 @@ services:
 
   smtp-server:
     networks:
-      - training-kong-net
+      - kong-edu-net
     image: reachfive/fake-smtp-server
     container_name: smtp-server
     hostname: smtp-server
