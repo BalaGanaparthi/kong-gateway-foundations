@@ -48,7 +48,7 @@ if [ ! -f "~/.local/bin/scram.sh" ]
 then
   mkdir -p ~/.local/bin
   cp ~/kong-gateway-operations/installation/scram.sh ~/.local/bin/
-  source ~/.profile
+  source /home/labuser/.profile
 fi
 printf "\n${red}Displaying Gateway URIs${normal}\n"
 env | grep KONG | sort
