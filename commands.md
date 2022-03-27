@@ -79,36 +79,57 @@ http --form POST kongcluster:8001/files \
 
 ## Using decK
 
-## Task: Save Kong configuration using decK
+## Task: Configure decK and Create a sample Service/Route
 cd ~/kong-gateway-operations/installation
 sed -i "s|KONG_ADMIN_API_URI|$KONG_ADMIN_API_URI|g" deck/deck.yaml
+cp deck/deck.yaml ~/.deck.yaml
 
-deck --config deck/deck.yaml \
-  dump --output-file deck/gwopslab.yaml \
-       --workspace default
+http POST kongcluster:8001/services \
+  name=httpbin \
+  url=https://httpbin.org/anything
 
-## Task: Sync updates and view config in Kong Manager
-deck --config deck/deck.yaml \
-  diff --state deck/sampledump.yaml \
-       --workspace default
+###  curl -X POST kongcluster:8001/services \
+       -d "name=httpbin" \
+       -d "url=https://httpbin.org/anything" \
+       | jq
 
-deck --config deck/deck.yaml \
-  sync --state deck/sampledump.yaml \
-       --workspace default
+http POST kongcluster:8001/services/httpbin/routes \
+  name=httpbin \
+  paths:='["/httpbin"]'
 
-## Task: Restore Kong configuration using decK
-deck sync --config deck/deck.yaml \
-  --state deck/gwopslab.yaml \
+### curl -X POST kongcluster:8001/services/httpbin/routes \
+      -d "name=httpbin" \
+      -d "paths=/httpbin" \
+      | jq
+
+## Task: Save/Load Kong configuration using decK
+
+deck dump \
+  --output-file gwopslabdump.yaml \
   --workspace default
 
+deck diff --state gwopslabdump.yaml
+deck reset
+deck diff --state gwopslabdump.yaml
 
+## Task: Sync updates and view config in Kong Manager
+deck diff \
+  --state deck/sampledump.yaml \
+  --workspace default
 
+deck sync \
+  --state deck/sampledump.yaml \
+  --workspace default
 
+## Task: Restore Kong configuration using decK
+deck sync \
+  --state deck/gwopslabdump.yaml \
+  --workspace default
 
+## Upgrading Kong Gateway
 
-
-
-
+cd ~/kong-gateway-operations/installation
+docker-compose down
 ## Task: Create a dedicated docker network and a database container
 docker network create kong-edu-net
 docker run -d --name kong-ee-database --network kong-edu-net \
@@ -116,7 +137,7 @@ docker run -d --name kong-ee-database --network kong-edu-net \
   -e "POSTGRES_USER=kong" \
   -e "POSTGRES_DB=kong-edu" \
   -e "POSTGRES_PASSWORD=kong" \
-  postgres:9.6
+  postgres:13.1
 
 ## Task: Bootstrap the Database for Kong 2.5.1.2
 docker run --rm --network kong-edu-net \
@@ -159,17 +180,19 @@ http POST kongcluster:8001/services \
   name=httpbin \
   url=https://httpbin.org/anything
 
-### curl -X POST kongcluster:8001/services \
+### curl -sX POST kongcluster:8001/services \
       -d "name=httpbin" \
-      -d "url=https://httpbin.org/anything"
+      -d "url=https://httpbin.org/anything" \
+      | jq
 
 http POST kongcluster:8001/services/httpbin/routes \
     name=httpbin \
     paths:='["/httpbin"]'
 
-### curl -X POST kongcluster:8001/services/httpbin/routes \
+### curl -sX POST kongcluster:8001/services/httpbin/routes \
       -d 'name=httpbin' \
-      -d 'paths[]=/httpbin'
+      -d 'paths[]=/httpbin' \
+      | jq
 
 ## Task: Run the 2.6 migrations
 docker run --rm --network kong-edu-net \
@@ -220,33 +243,34 @@ docker run -d --name kong-ee-edu --network kong-edu-net \
 http --headers GET kongcluster:8000/httpbin
 ### curl -IX GET kongcluster:8000/httpbin
 
+## Task: Clean up Lab
+docker kill $(docker ps -q)
+docker volume prune -f
+
 ## Task: Upgrade Using Docker Compose
+export KONG_LICENSE_DATA=`cat "/etc/kong/license.json"`
 export KONG_VERSION="2.5.1.2-alpine"
 docker-compose -f kongupgdemo.yaml up -d
 
-http GET kongcluster:8001 kong-admin-token:admin \
-  | jq '.hostname + " " + .version'
+http GET kongcluster:8001 \
+ | jq '.hostname + " " + .version'
 
-### curl -sX GET kongcluster:8001 -H kong-admin-token:admin \
+### curl -sX GET kongcluster:8001 \
       | jq '.hostname + " " + .version'
 
 http POST kongcluster:8001/services \
-  kong-admin-token:admin \
   name=httpbin \
   url=https://httpbin.org/anything
 
 ### curl -X POST kongcluster:8001/services \
-      -H kong-admin-token:admin \
       -d "name=httpbin" \
       -d "url=https://httpbin.org/anything"
 
 http POST kongcluster:8001/services/httpbin/routes \
-  kong-admin-token:admin \
   name=httpbin \
   paths:='["/httpbin"]'
 
 ### curl -X POST kongcluster:8001/services/httpbin/routes \
-      -H kong-admin-token:admin \
       -d "name=httpbin" \
       -d "paths[]=/httpbin"
 

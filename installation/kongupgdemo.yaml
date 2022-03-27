@@ -8,7 +8,7 @@ networks:
   driver: bridge
 services:
  postgres:
-  image: postgres:9.6
+  image: postgres:13.1
   restart: always
   container_name: postgres
   hostname: postgres
@@ -89,8 +89,8 @@ services:
    - KONG_VITALS=off
    - KONG_STATUS_LISTEN=0.0.0.0:8100
    - KONG_PASSWORD=admin
-   - KONG_ENFORCE_RBAC=on
-   - KONG_ADMIN_GUI_AUTH=basic-auth
-   - KONG_ADMIN_GUI_SESSION_CONF={"secret":"kong", "cookie_name":"kong_cookie", "cookie_secure":false}
+#  - KONG_ENFORCE_RBAC=on
+#  - KONG_ADMIN_GUI_AUTH=basic-auth
+#  - KONG_ADMIN_GUI_SESSION_CONF={"secret":"kong", "cookie_name":"kong_cookie", "cookie_secure":false}
   networks:
    - kong-edu-net
