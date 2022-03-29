@@ -16,6 +16,9 @@ git clone https://github.com/gigaprimatus/kong-gateway-operations.git
 cd kong-gateway-operations/installation
 printf "\n${red}Copying SSL certificates to shared location.${normal}"
 cp -R ssl-certs /srv/shared
+printf "\n${red}Copying loopback configuration to shared location.${normal}"
+mkdir -p /srv/shared/misc
+cp loopback.yaml /srv/shared/misc
 printf "\n${red}Instantiating log files, accessibe at /srv/shared/logs/.${normal}"
 mkdir -p /srv/shared/logs
 touch $(grep '/srv/shared/logs/' docker-compose.yaml|awk '{print $2}'|xargs)
