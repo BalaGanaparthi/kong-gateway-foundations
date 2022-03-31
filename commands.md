@@ -771,13 +771,13 @@ http POST kongcluster:8001/consumers/Jane/key-auth key=JanePassword
 ( for ((i=1;i<=20;i++))
     do
     sleep 1
-    http GET $KONG_PROXY_URI/mock/request?apikey=JanePassword
+    http GET kongcluster:8000/mock/request?apikey=JanePassword
   done )
 
 ### ( for ((i=1;i<=20;i++))
       do
         sleep 1
-        curl -isX GET $KONG_PROXY_URI/mock/request?apikey=JanePassword
+        curl -isX GET kongcluster:8000/mock/request?apikey=JanePassword
       done )
 
 ## Task: Create mocking service and route
@@ -830,21 +830,136 @@ http --headers GET kongcluster:8000/mock/request Authorization:"Bearer $TOKEN"
 ### curl -isX GET kongcluster:8000/mock/request -H Authorization:"Bearer $TOKEN" | jq
 
 ## Task: Create a self-signed certificate 
+cd ~/kong-gateway-operations/securing-services
+./create-certificate.sh
 
-curl -L https://gist.githubusercontent.com/johnfitzpatrick/b918848c5dc7d76f95c1ed5730e70b32/raw/4389eb1abfd04857f3adc37b80b66dca6c402103/create_certificate.sh | bash
-http -f kongcluster:8001/ca_certificates cert@/home/labuser/.certificates/ca.cert.pem tags=ownCA Kong-Admin-Token:super-admin
-CERT_ID=$(http -f kongcluster:8001/ca_certificates Kong-Admin-Token:super-admin | jq -r '.data[].id')
-http POST kongcluster:8001/services name=public-service url=http://httpbin.org/anything Kong-Admin-Token:super-admin
-http -f POST kongcluster:8001/services/public-service/routes name=public-route paths=/public Kong-Admin-Token:super-admin
-http POST kongcluster:8001/services name=confidential-service url=https://httpbin.org/uuid Kong-Admin-Token:super-admin
-http -f POST kongcluster:8001/services/confidential-service/routes name=confidential-route paths=/confidential Kong-Admin-Token:super-admin
-http get $KONG_PROXY_URI/public
-http get $KONG_PROXY_URI/confidential
-http POST kongcluster:8001/consumers username=demo@example.com Kong-Admin-Token:super-admin
-http POST kongcluster:8001/services/confidential-service/plugins name=mtls-auth config:="{\"ca_certificates\": [\"$CERT_ID\"],\"revocation_check_mode\": \"SKIP\"}" Kong-Admin-Token:super-admin
-http --verify=no  https://localhost:8443/confidential
-http --verify=no --cert=/home/labuser/.certificates/ca.cert.pem --cert-key=/home/labuser/.certificates/client.key https://localhost:8443/confidential
-http get $KONG_PROXY_URI/public
+## Kong Validating Client/Server Certificates
+openssl crl2pkcs7 -nocrl -certfile ~/.certificates/client.crt \
+| openssl pkcs7 -print_certs -noout
+
+## Task: Upload self-signed CA certificate to Kong
+CA_CERT_ID=$(http -f kongcluster:8001/ca_certificates \
+  cert@/home/labuser/.certificates/ca.cert.pem tags=ownCA \
+  | jq -r '.id')
+
+### CA_CERT_ID=$(curl -sX POST kongcluster:8001/ca_certificates \
+      -F cert=@/home/labuser/.certificates/ca.cert.pem \
+      -F tags=ownCA \
+      | jq -r '.id') 
+
+echo $CA_CERT_ID
+
+## Task: Set up a public and a private service & routes
+
+
+http POST kongcluster:8001/services \
+  name=public-service \
+  url=http://httpbin.org/anything
+
+### curl -sX POST kongcluster:8001/services \
+      -d name=public-service \
+      -d url=http://httpbin.org/anything \
+      | jq
+
+http -f POST kongcluster:8001/services/public-service/routes \
+  name=public-route \
+  paths=/public
+
+### curl -sX POST kongcluster:8001/services/public-service/routes \
+      -d name=public-route \
+      -d paths=/public \
+      | jq
+
+
+http POST kongcluster:8001/services \
+  name=confidential-service \
+  url=https://httpbin.org/uuid
+
+### curl -sX POST kongcluster:8001/services \
+      -d name=confidential-service \
+      -d url=https://httpbin.org/uuid \
+      | jq
+    
+http -f POST kongcluster:8001/services/confidential-service/routes \
+  name=confidential-route \
+  paths=/confidential
+
+### curl -sX POST kongcluster:8001/services/confidential-service/routes \
+      -d name=confidential-route \
+      -d paths=/confidential \
+      | jq
+
+## Task: Verify traffic is being proxied
+http GET kongcluster:8000/public
+## curl -isX GET kongcluster:8000/public
+http GET kongcluster:8000/confidential
+### curl -isX GET kongcluster:8000/confidential
+
+## Task: Create a consumer
+http POST kongcluster:8001/consumers username=demo@example.com
+### curl POST kongcluster:8001/consumers -d username=demo@example.com | jq
+
+## Task: Implement the mTLS plugin to Kong
+http POST kongcluster:8001/services/confidential-service/plugins \
+  name=mtls-auth \
+  config:="{\"ca_certificates\": [\"$CA_CERT_ID\"],\"revocation_check_mode\": \"SKIP\"}"
+
+### curl -sX POST kongcluster:8001/services/confidential-service/plugins \
+      -d name=mtls-auth \
+      -d config.ca_certificates=$CA_CERT_ID \
+      -d config.revocation_check_mode='SKIP' \
+      | jq
+
+## Task: Verify access for private service without a certificate
+http --verify=no https://kongcluster:8443/confidential
+### curl -k -sX GET https://kongcluster:8443/confidential | jq
+
+http --verify=no \
+    --cert=/home/labuser/.certificates/client.crt \
+    --cert-key=/home/labuser/.certificates/client.key \
+    https://kongcluster:8443/confidential
+
+### curl -k -sX GET \
+      --key /home/labuser/.certificates/client.key \
+      --cert /home/labuser/.certificates/client.crt \
+      https://kongcluster:8443/confidential \
+      | jq
+
+## Task: Verify public route is unaffected
+http GET kongcluster:8000/public
+### curl -isX GET kongcluster:8000/public
+
+## Task: Configure and Test Rate Limiting
+http --form POST kongcluster:8001/consumers/demo@example.com/plugins \
+   name=rate-limiting \
+   config.minute=5
+
+### curl -sX POST kongcluster:8001/consumers/demo@example.com/plugins \
+      -d name=rate-limiting \
+      -d config.minute=5 \
+      | jq
+
+
+for ((i=1;i<=10;i++)); do
+http --headers --verify=no --cert=/home/labuser/.certificates/client.crt --cert-key=/home/labuser/.certificates/client.key https://kongcluster:8443/confidential | head -1;
+done
+
+( for ((i=1;i<=10;i++))
+    do
+    http --headers --verify=no --cert=/home/labuser/.certificates/client.crt \
+         --cert-key=/home/labuser/.certificates/client.key \
+         https://kongcluster:8443/confidential \
+         | head -1
+  done )
+
+### ( for ((i=1;i<=10;i++))
+      do
+        curl -k -isX GET \
+          --key /home/labuser/.certificates/client.key \
+          --cert /home/labuser/.certificates/client.crt \
+          https://kongcluster:8443/confidential \
+          | head -1
+      done )
 
 
 # SCRATCH AREA ONLY
