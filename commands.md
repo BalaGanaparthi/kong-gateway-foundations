@@ -724,23 +724,113 @@ http GET kongcluster:8000/admin-api/services apikey:secret
 
 # 03 - Securing Services on Kong
 
-http --form POST kongcluster:8001/.../plugins name=rate-limiting config.second=nn config.min=nn config.hour=nn … config.year=nn config.policy=cluster config.limit_by=consumer
-http --form POST kongcluster:8001/services/mocking_service/plugins name=rate-limiting config.hour=8192 config.policy=local
-http POST kongcluster:8001/services name=mocking_service url='http://mockbin.org' Kong-Admin-Token:super-admin
-http POST kongcluster:8001/services/mocking_service/routes name=mocking paths:='["/mock"]' Kong-Admin-Token:super-admin
-http --form POST kongcluster:8001/plugins name=rate-limiting config.minute=5 config.policy=local Kong-Admin-Token:super-admin
-http POST kongcluster:8001/plugins name=key-auth Kong-Admin-Token:super-admin
-http POST kongcluster:8001/consumers username=Jane Kong-Admin-Token:super-admin
-http POST kongcluster:8001/consumers/Jane/key-auth key=JanePassword Kong-Admin-Token:super-admin
-for ((i=1;i<=20;i++)); do sleep 1; http --headers GET $KONG_PROXY_URI/mock/request?apikey=JanePassword; done
-http --form POST kongcluster:8001/.../plugins name=jwt \
+## Task: Create a service with a route
+
+http POST kongcluster:8001/services \
+  name=mocking_service \
+  url='http://mockbin.org'
+
+### curl -sX POST kongcluster:8001/services \
+      -d name=mocking_service \
+      -d url='http://mockbin.org' \
+      | jq 
+
+http POST kongcluster:8001/services/mocking_service/routes \
+  name=mocking \
+  paths:='["/mock"]'
+
+curl -sX POST kongcluster:8001/services/mocking_service/routes \
+  -d name=mocking \
+  -d paths='/mock' \
+  | jq
+
+## Task: Configure Rate Limiting and key-auth Plugins
+
+http --form POST kongcluster:8001/services/mocking_service/plugins \
+  name=rate-limiting \
+  config.minute=5 \
+  config.policy=local
+
+### curl -sX POST kongcluster:8001/services/mocking_service/plugins \
+      -d name=rate-limiting \
+      -d config.minute=5 \
+      -d config.policy=local \
+      | jq
+
+http POST kongcluster:8001/services/mocking_service/plugins name=key-auth
+### curl -sX kongcluster:8001/services/mocking_service/plugins -d name=key-auth | jq
+
+## Task: Create consumer and assign credentials
+http POST kongcluster:8001/consumers username=Jane
+### curl -sX POST kongcluster:8001/consumers -d username=Jane | jq
+http POST kongcluster:8001/consumers/Jane/key-auth key=JanePassword
+### curl -sX POST kongcluster:8001/consumers/Jane/key-auth -d key=JanePassword | jq
+
+## Task: Create Some Traffic for User
+
+( for ((i=1;i<=20;i++))
+    do
+    sleep 1
+    http GET $KONG_PROXY_URI/mock/request?apikey=JanePassword
+  done )
+
+### ( for ((i=1;i<=20;i++))
+      do
+        sleep 1
+        curl -isX GET $KONG_PROXY_URI/mock/request?apikey=JanePassword
+      done )
+
+## Task: Create mocking service and route
+http DELETE kongcluster:8001/services/mocking_service/routes/mocking > /dev/null 2>&1
+### curl -X DELETE kongcluster:8001/services/mocking_service/routes/mocking > /dev/null 2>&1
+http DELETE kongcluster:8001/services/mocking_service > /dev/null 2>&1
+### curl -X DELETE kongcluster:8001/services/mocking_service > /dev/null 2>&1
+
+http POST kongcluster:8001/services \
+  name=mocking_service \
+  url='http://mockbin.org'
+
+### curl -D - -o /dev/null -sX POST kongcluster:8001/services \
+    -d name=mocking_service \
+    -d url='http://mockbin.org'
+
+http POST kongcluster:8001/services/mocking_service/routes \
+    name=mocking \
+    paths:='["/mock"]'
+
+### curl -D - -o /dev/null -sX POST kongcluster:8001/services/mocking_service/routes \
+      -d name=mocking \
+      -d paths='/mock'
+
+## Task: Enable JWT Plugin for a Service
 http POST kongcluster:8001/services/mocking_service/plugins name=jwt
-http POST kongcluster:8001/services/mocking_service/routes name=mocking paths:='["/mock"]' Kong-Admin-Token:super-admin
-http kongcluster:8001/services name=mocking_service url='http://mockbin.org' Kong-Admin-Token:super-admin
-http POST kongcluster:8001/consumers username=Jane Kong-Admin-Token:super-admin
-http POST kongcluster:8001/consumers/Jane/jwt Kong-Admin-Token:super-admin
-http GET kongcluster:8001/consumers/Jane/jwt Kong-Admin-Token:super-admin
-http POST kongcluster:8001/services/mocking_service/plugins name=jwt Kong-Admin-Token:super-admin
+
+### curl -sX POST kongcluster:8001/services/mocking_service/plugins \
+      -d name=jwt \
+      | jq
+
+## Task: Create a consumer and assign JWT credentials
+http DELETE kongcluster:8001/consumers/Jane
+### curl -iX DELETE kongcluster:8001/consumers/Jane
+http POST kongcluster:8001/consumers username=Jane
+### curl -D - -o /dev/null -sX POST kongcluster:8001/consumers -d username=Jane
+http POST kongcluster:8001/consumers/Jane/jwt
+### curl -D - -o /dev/null -sX POST kongcluster:8001/consumers/Jane/jwt
+
+## Task: Get JWT key/secret for consumer
+KEY=$(http GET kongcluster:8001/consumers/Jane/jwt | jq '.data[0].key')
+echo '{"iss":'"$KEY"'}'
+SECRET=$(http GET kongcluster:8001/consumers/Jane/jwt | jq '.data[0].secret'|xargs)
+TOKEN=$(jwt -e -s $SECRET --jwt '{"iss":'"$KEY"'}')
+
+## Task: Consume the service with JWT credentials
+http --headers GET kongcluster:8000/mock/request
+### curl -isX GET kongcluster:8000/mock/request
+http --headers GET kongcluster:8000/mock/request Authorization:"Bearer $TOKEN"
+### curl -isX GET kongcluster:8000/mock/request -H Authorization:"Bearer $TOKEN" | jq
+
+
+
 http -h GET $KONG_PROXY_URI/mock/request Authorization:'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJSaDNtR09iUFVYRUwzdDZIVjhkRm1qbHlNd2JHU1ZFRiJ9.1b5bl5VV2mG8WoCiMB7N3teYMboQFUHs-F_eBDxaorQ' | head -n 1
 curl -L https://gist.githubusercontent.com/johnfitzpatrick/b918848c5dc7d76f95c1ed5730e70b32/raw/4389eb1abfd04857f3adc37b80b66dca6c402103/create_certificate.sh | bash
 http -f kongcluster:8001/ca_certificates cert@/home/labuser/.certificates/ca.cert.pem tags=ownCA Kong-Admin-Token:super-admin
