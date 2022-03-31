@@ -940,13 +940,9 @@ http --form POST kongcluster:8001/consumers/demo@example.com/plugins \
       | jq
 
 
-for ((i=1;i<=10;i++)); do
-http --headers --verify=no --cert=/home/labuser/.certificates/client.crt --cert-key=/home/labuser/.certificates/client.key https://kongcluster:8443/confidential | head -1;
-done
-
 ( for ((i=1;i<=10;i++))
     do
-    http --headers --verify=no --cert=/home/labuser/.certificates/client.crt \
+      http --headers --verify=no --cert=/home/labuser/.certificates/client.crt \
          --cert-key=/home/labuser/.certificates/client.key \
          https://kongcluster:8443/confidential \
          | head -1
