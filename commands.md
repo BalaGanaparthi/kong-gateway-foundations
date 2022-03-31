@@ -829,9 +829,8 @@ http --headers GET kongcluster:8000/mock/request
 http --headers GET kongcluster:8000/mock/request Authorization:"Bearer $TOKEN"
 ### curl -isX GET kongcluster:8000/mock/request -H Authorization:"Bearer $TOKEN" | jq
 
+## Task: Create a self-signed certificate 
 
-
-http -h GET $KONG_PROXY_URI/mock/request Authorization:'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJSaDNtR09iUFVYRUwzdDZIVjhkRm1qbHlNd2JHU1ZFRiJ9.1b5bl5VV2mG8WoCiMB7N3teYMboQFUHs-F_eBDxaorQ' | head -n 1
 curl -L https://gist.githubusercontent.com/johnfitzpatrick/b918848c5dc7d76f95c1ed5730e70b32/raw/4389eb1abfd04857f3adc37b80b66dca6c402103/create_certificate.sh | bash
 http -f kongcluster:8001/ca_certificates cert@/home/labuser/.certificates/ca.cert.pem tags=ownCA Kong-Admin-Token:super-admin
 CERT_ID=$(http -f kongcluster:8001/ca_certificates Kong-Admin-Token:super-admin | jq -r '.data[].id')
