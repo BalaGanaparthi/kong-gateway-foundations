@@ -6,23 +6,30 @@ networks:
     driver: bridge
 
 services:
-# keycloak:
-#   image:
-#     restart: always
-#     container_name: kong-keycloak
-#     environment:
-#       - KEYCLOAK_USER=admin
-#       - KEYCLOAK_PASSWORD=test
-#     ports:
-#       - 8080:8080
-#       - ${KONG_KEYCLOAK_PORT}:8080
+#^keycloak:
+#^  networks:
+#^    - kong-edu-net
+#^  image: jboss/keycloak:16.1.1
+#^  container_name: keycloak
+#^  hostname: keycloak
+#^  command: -Dkeycloak.profile.feature.upload_scripts=enabled
+#^  volumes:
+#^    - /data:/data
+#^  environment:
+#^    DB_VENDOR: H2
+#^    KEYCLOAK_USER: admin
+#^    KEYCLOAK_PASSWORD: admin
+#^    KEYCLOAK_IMPORT: "/data/kong_realm_template.json"
+#^    PROXY_ADDRESS_FORWARDING: "true"
+#^  ports:
+#^    - 8080:8080
 
-  db:
+  postgres:
     networks:
       - kong-edu-net
     image: postgres:13.1
-    container_name: db
-    hostname: db
+    container_name: postgres
+    hostname: postgres
     environment:
       POSTGRES_DB: kong
       POSTGRES_PASSWORD: kong
@@ -45,7 +52,7 @@ services:
     command: kong migrations bootstrap
     environment:
       KONG_DATABASE: postgres
-      KONG_PG_HOST: db
+      KONG_PG_HOST: postgres
       KONG_PG_DATABASE: kong
       KONG_PG_USER: kong
       KONG_PG_PASSWORD: kong
@@ -61,7 +68,7 @@ services:
     hostname: kong-cp
     user: "${KONG_USER:-kong}"
     depends_on:
-      db:
+      postgres:
         condition: service_healthy
     volumes:
       - /srv/shared/logs:/srv/shared/logs
@@ -79,7 +86,7 @@ services:
       KONG_CLUSTER_LISTEN: "0.0.0.0:8005"
       KONG_CLUSTER_TELEMETRY_LISTEN: "0.0.0.0:8006"
       KONG_DATABASE: postgres
-      KONG_PG_HOST: db
+      KONG_PG_HOST: postgres
       KONG_PG_DATABASE: kong
       KONG_PG_USER: kong
       KONG_PG_PASSWORD: kong
