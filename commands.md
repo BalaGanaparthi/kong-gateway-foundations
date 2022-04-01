@@ -958,4 +958,180 @@ http --form POST kongcluster:8001/consumers/demo@example.com/plugins \
       done )
 
 
-# SCRATCH AREA ONLY
+# 04 - OIDC Plugin
+
+## Slide 10
+$ docker run -d\
+  -e KEYCLOAK_USER=admin \
+  -e KEYCLOAK_PASSWORD=admin \
+  -e PROXY_ADDRESS_FORWARDING=true \
+  -p 8080:8080 \
+  -v /data:/data \
+  -e KEYCLOAK_IMPORT="/data/kong_realm_template.json -Dkeycloak.profile.feature.upload_scripts=enabled" \
+  jboss/keycloak
+
+## Slide 11
+$ cd ~/kong-gateway-operations/oidc
+$ cat kong_realm_template.json | jq '.users[].username'
+
+## Slide 13
+$ http POST kongcluster:8001/services name=my-oidc-service url=http://httpbin.org/anything Kong-Admin-Token:super-admin
+$ http POST kongcluster:8001/services/my-oidc-service/routes name=oidc-route paths:='["/oidc"]' Kong-Admin-Token:super-admin
+
+## Slide 14
+$ http GET kongcluster:8000/oidc
+
+## Slide 15
+$ http -f post kongcluster:8001/routes/oidc-route/plugins \
+    name=openid-connect \
+    config.issuer=$KEYCLOAK_CONFIG_ISSUER \
+    config.client_id=kong \
+    config.client_secret=$CLIENT_SECRET \
+    config.redirect_uri=$KEYCLOAK_REDIRECT_URI/oidc \
+    config.response_mode=form_post \
+    config.ssl_verify=false \
+    Kong-Admin-Token:super-admin
+
+## Slide 17
+$ http GET kongcluster:8000/oidc
+$ http GET kongcluster:8000/oidc -a user:password
+
+## Slide 18
+$ http GET kongcluster:8001/openid-connect/issuers Kong-Admin-Token:super-admin
+
+## Slide 22
+$ http GET kongcluster:8000/oidc -a employee:test
+
+## Slide 25
+$ http GET kongcluster:8000/oidc -a employee:test
+
+## Slide 26
+$ export BEARER_TOKEN=$(http kongcluster:8000/oidc -a employee:test | jq -r '.headers .Authorization')
+$ http GET kongcluster:8000/oidc Authorization:"$BEARER_TOKEN"
+
+## Slide 33
+$ http PUT kongcluster:8001/consumers/employee Kong-Admin-Token:super-admin
+$ PLUGIN_ID=$(http kongcluster:8001/routes/oidc-route/plugins/ Kong-Admin-Token:super-admin | jq -r '.data[] | select(.name == "openid-connect") | .id')
+$ http -f PATCH kongcluster:8001/plugins/$PLUGIN_ID config.consumer_claim=preferred_username Kong-Admin-Token:super-admin
+
+## Slide 34
+$ http GET kongcluster:8000/oidc -a employee:test
+
+## Slide 35
+$ http GET kongcluster:8000/oidc -a partner:test
+
+## Slide 36
+$ http -f POST kongcluster:8001/consumers/employee/plugins name=rate-limiting config.minute=3 config.policy=local Kong-Admin-Token:super-admin
+$ http GET kongcluster:8000/oidc -a employee:test
+$ http GET kongcluster:8000/oidc -a employee:test
+$ http GET kongcluster:8000/oidc -a employee:test
+$ http GET kongcluster:8000/oidc -a employee:test
+
+## Slide 37
+$ http -f PATCH kongcluster:8001/plugins/$PLUGIN_ID config.consumer_claim= Kong-Admin-Token:super-admin
+$ RATE_PLUGIN_ID=$(http GET kongcluster:8001/consumers/employee/plugins Kong-Admin-Token:super-admin | jq -r '.data[0] .id')
+$ http DELETE kongcluster:8001/plugins/$RATE_PLUGIN_ID Kong-Admin-Token:super-admin
+
+## Slide 41
+$ PLUGIN_ID=$(http GET kongcluster:8001/routes/oidc-route/plugins/ Kong-Admin-Token:super-admin | jq -r '.data[] | select(.name == "openid-connect") | .id')
+$ http -f PATCH kongcluster:8001/plugins/$PLUGIN_ID config.consumer_claim= config.authenticated_groups_claim=realm_access config.authenticated_groups_claim=roles Kong-Admin-Token:super-admin
+
+## Slide 42
+$ http -f POST kongcluster:8001/routes/oidc-route/plugins name=acl config.whitelist=admins Kong-Admin-Token:super-admin
+$ http GET kongcluster:8000/oidc -a employee:test
+
+## Slide 43
+$ ACL_PLUGIN_ID=$(http GET kongcluster:8001/routes/oidc-route/plugins Kong-Admin-Token:super-admin | jq -r '.data[] | select(.name == "acl") | .id')
+$ http -f PATCH kongcluster:8001/routes/oidc-route/plugins/$ACL_PLUGIN_ID config.whitelist=demo-service Kong-Admin-Token:super-admin
+$ http GET kongcluster:8000/oidc -a employee:test
+
+## Slide 44
+$ http DELETE kongcluster:8001/routes/oidc-route/plugins/$ACL_PLUGIN_ID Kong-Admin-Token:super-admin
+
+## Slide 47
+$ PLUGIN_ID=$(http GET kongcluster:8001/routes/oidc-route/plugins/ Kong-Admin-Token:super-admin | jq -r '.data[] | select(.name == "openid-connect") | .id')
+$ http -f PATCH kongcluster:8001/plugins/$PLUGIN_ID config.consumer_claim=preferred_username config.consumer_optional=true Kong-Admin-Token:super-admin
+
+## Slide 48
+$ http -f POST kongcluster:8001/routes/oidc-route/plugins name=rate-limiting config.minute=5 config.policy=local Kong-Admin-Token:super-admin
+
+## Slide 49
+$ http -f POST kongcluster:8001/consumers/employee/plugins name=rate-limiting config.minute=1000 config.policy=local Kong-Admin-Token:super-admin
+$ http GET kongcluster:8000/oidc -a partner:test
+
+## Slide 50
+$ http GET kongcluster:8000/oidc -a employee:test
+
+
+# 05 - Troubleshooting
+
+## Slide 12
+$ http kongcluster:8001 Kong-Admin-Token:super-admin > 8001.out
+$ jq . 8001.out | less
+
+## Slide 13
+$ http kongcluster:8001/status Kong-Admin-Token:super-admin > 8001-status.out
+$ jq . 8001-status.out | less
+
+## Slide 14
+$ cat /srv/shared/logs/proxy_error.log
+
+## Slide 19
+$ curl -o /dev/null --trace-time -ivv -L https://www.google.com
+$ curl -L --output /dev/null --silent --show-error --write-out '\n\nlookup: %{time_namelookup}\nconnect: %{time_connect}\nappconnect: %{time_appconnect}\npretransfer: %{time_pretransfer}\nredirect: %{time_redirect}\nstarttransfer: %{time_starttransfer}\ntotal: %{time_total}\nsize: %{size_download}\n\n' 'https://www.google.com'
+
+## Slide 24
+$ cd ~/kong-gateway-operations/troubleshooting
+$ ./create-broken-lab1.sh
+
+## Slide 25
+$ echo $KONG_PROXY_URI
+
+# 06 - Kong Vitals
+
+## Slide 10
+$ for ((i=1;i<=20;i++)); do sleep 1; http GET $KONG_PROXY_URI/mock/request?apikey=JanePassword; done
+
+## Slide 12
+$ http kongcluster:8001/default/vitals/status_code_classes?interval=seconds  Kong-Admin-Token:super-admin | jq .meta
+
+# 07 - Advanced Plugins review
+
+## Slide 14
+$ http POST kongcluster:8001/services name=numberfun url='http://numbersapi.com/random/year' Kong-Admin-Token:super-admin
+$ http -f POST kongcluster:8001/services/numberfun/routes name=numberfun_route paths=/randomyear Kong-Admin-Token:super-admin
+
+## Slide 15
+$ http POST kongcluster:8001/consumers username=Joe Kong-Admin-Token:super-admin
+$ http POST kongcluster:8001/consumers/Joe/key-auth key=JoePassword Kong-Admin-Token:super-admin
+$ http POST kongcluster:8001/plugins name=key-auth Kong-Admin-Token:super-admin
+$ for ((i=1;i<=20;i++)); do sleep 1; http GET kongcluster:8000/randomyear?apikey=JoePassword; done
+
+## Slide 18
+$ http --form POST kongcluster:8001/plugins name=rate-limiting-advanced config.limit=5 config.window_size=60 config.sync_rate=-1 config.strategy=redis config.redis.host=redis-hostname config.redis.port=6379 kong-admin-token:super-admin
+$ for ((i=1;i<=20;i++)); do sleep 1; http GET kongcluster:8000/randomyear?apikey=JoePassword; done
+
+## Slide 25
+$ http --form POST docker:8001/plugins name=request-transformer-advanced config.add.headers[1]=h1:v1 config.add.headers[2]=h2:v1
+$ http --form POST docker:8001/plugins name=request-transformer-advanced config.add.querystring[1]=q1:v1 config.add.querystring[2]=q2:v1 config.add.headers=h1:v1
+
+## Slide 26
+$ http --form POST docker:8001/plugins name=response-transformer-advanced config.remove.headers=h1,h2 config.add.headers=h3:v1
+$ http --form POST docker:8001/plugins name=response-transformer-advanced config.add.json=sample_key:sample_value config.add.headers=h1:v1
+
+## Slide 30
+$ http --form POST kongcluster:8001/plugins name=response-transformer-advanced config.add.json=p1:v1 config.add.headers=X-Kong-Test-Header:Test-Value Kong-Admin-Token:super-admin
+$ http GET $KONG_PROXY_URI/randomyear?apikey=JoePassword
+
+## Slide 33
+$ http --form POST kongcluster:8001/plugins name=request-transformer-advanced config.add.headers=X-Kong-Test-Request-Header:MyHeader config.rename.headers=User-Agent:My-User-Agent Kong-Admin-Token:super-admin
+
+## Slide 35
+$ http -v GET $KONG_PROXY_URI/mock/request?apikey=JoePassword
+
+## Slide 43
+$ http --form POST kongcluster:8001/plugins name=prometheus \
+$ for ((i=1;i<=20;i++)); do sleep 1; http GET $KONG_PROXY_URI/randomyear?apikey=JoePassword; done
+
+## Slide 44
+$ http docker:8101/metrics
