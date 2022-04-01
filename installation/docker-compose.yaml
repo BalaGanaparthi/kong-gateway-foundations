@@ -197,15 +197,6 @@ services:
       - "8443:8443/tcp"
       - "8101:8101/tcp"
 
-# httpbin:
-#   networks:
-#     - kong-edu-net
-#   image: "kennethreitz/httpbin"
-#   container_name: httpbin
-#   hostname: httpbin
-#   ports:
-#     - "80:80/tcp"
-
   smtp-server:
     networks:
       - kong-edu-net
@@ -215,3 +206,12 @@ services:
     ports:
     # - "25:1025/tcp"
       - "1080:1080/tcp"
+
+#%httpbin:
+#%  networks:
+#%    - kong-edu-net
+#%  image: "kennethreitz/httpbin"
+#%  container_name: httpbin
+#%  hostname: httpbin
+#%  ports:
+#%    - "80:80/tcp"
