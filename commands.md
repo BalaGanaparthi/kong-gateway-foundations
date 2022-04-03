@@ -959,78 +959,149 @@ http --form POST kongcluster:8001/consumers/demo@example.com/plugins \
 
 
 # 04 - OIDC Plugin
+cd
+source scram.sh
 
-## Slide 10
-$ docker run -d\
-  -e KEYCLOAK_USER=admin \
-  -e KEYCLOAK_PASSWORD=admin \
-  -e PROXY_ADDRESS_FORWARDING=true \
-  -p 8080:8080 \
-  -v /data:/data \
-  -e KEYCLOAK_IMPORT="/data/kong_realm_template.json -Dkeycloak.profile.feature.upload_scripts=enabled" \
-  jboss/keycloak
+cd
+git clone https://github.com/gigaprimatus/kong-gateway-operations.git
+source ~/kong-gateway-operations/installation/scram.sh
 
-## Slide 11
-$ cd ~/kong-gateway-operations/oidc
-$ cat kong_realm_template.json | jq '.users[].username'
+## Task: Deploy Keycloak
+sed -i 's|\#\^|\ \ |g' docker-compose.yaml
+docker-compose up -d
+cd ~/kong-gateway-operations/oidc
+cat kong_realm_template.json | jq '.users[].username'
 
-## Slide 13
-$ http POST kongcluster:8001/services name=my-oidc-service url=http://httpbin.org/anything Kong-Admin-Token:super-admin
-$ http POST kongcluster:8001/services/my-oidc-service/routes name=oidc-route paths:='["/oidc"]' Kong-Admin-Token:super-admin
+## Task: Add a Service to use with OIDC
 
-## Slide 14
-$ http GET kongcluster:8000/oidc
+http POST kongcluster:8001/services \
+    name=my-oidc-service \
+    url=http://httpbin.org/anything
 
-## Slide 15
-$ http -f post kongcluster:8001/routes/oidc-route/plugins \
-    name=openid-connect \
-    config.issuer=$KEYCLOAK_CONFIG_ISSUER \
-    config.client_id=kong \
-    config.client_secret=$CLIENT_SECRET \
-    config.redirect_uri=$KEYCLOAK_REDIRECT_URI/oidc \
-    config.response_mode=form_post \
-    config.ssl_verify=false \
-    Kong-Admin-Token:super-admin
+### curl -isX POST kongcluster:8001/services \
+      -d name=my-oidc-service \
+      -d url=http://httpbin.org/anything
 
-## Slide 17
-$ http GET kongcluster:8000/oidc
-$ http GET kongcluster:8000/oidc -a user:password
+http -f POST kongcluster:8001/services/my-oidc-service/routes \
+  name=my-oidc-route \
+  paths=/oidc
 
-## Slide 18
-$ http GET kongcluster:8001/openid-connect/issuers Kong-Admin-Token:super-admin
+### curl -isX POST kongcluster:8001/services/my-oidc-service/routes \
+      -d name=my-oidc-route \
+      -d paths=/oidc
 
-## Slide 22
-$ http GET kongcluster:8000/oidc -a employee:test
+## Task: Confirm Service Functionality
+http GET kongcluster:8000/oidc
+### curl -isX GET kongcluster:8000/oidc
 
-## Slide 25
-$ http GET kongcluster:8000/oidc -a employee:test
+## Task: Add OpenID Connect Plugin
 
-## Slide 26
-$ export BEARER_TOKEN=$(http kongcluster:8000/oidc -a employee:test | jq -r '.headers .Authorization')
-$ http GET kongcluster:8000/oidc Authorization:"$BEARER_TOKEN"
+http -f POST kongcluster:8001/routes/my-oidc-route/plugins \
+  name=openid-connect \
+  config.issuer=$KEYCLOAK_CONFIG_ISSUER \
+  config.client_id=kong \
+  config.client_secret=$CLIENT_SECRET \
+  config.redirect_uri=$KEYCLOAK_REDIRECT_URI/oidc \
+  config.response_mode=form_post \
+  config.ssl_verify=false
 
-## Slide 33
-$ http PUT kongcluster:8001/consumers/employee Kong-Admin-Token:super-admin
-$ PLUGIN_ID=$(http kongcluster:8001/routes/oidc-route/plugins/ Kong-Admin-Token:super-admin | jq -r '.data[] | select(.name == "openid-connect") | .id')
-$ http -f PATCH kongcluster:8001/plugins/$PLUGIN_ID config.consumer_claim=preferred_username Kong-Admin-Token:super-admin
+### curl -sX POST kongcluster:8001/routes/my-oidc-route/plugins \
+      -d name=openid-connect \
+      -d config.issuer=$KEYCLOAK_CONFIG_ISSUER \
+      -d config.client_id=kong \
+      -d config.client_secret=$CLIENT_SECRET \
+      -d config.redirect_uri=$KEYCLOAK_REDIRECT_URI/oidc \
+      -d config.response_mode=form_post \
+      -d config.ssl_verify=false \
+      | jq
 
-## Slide 34
-$ http GET kongcluster:8000/oidc -a employee:test
+## Task: Verify Protected Service
+http GET kongcluster:8000/oidc
+### curl -iX GET kongcluster:8000/oidc
+http GET kongcluster:8000/oidc -a user:password
+### curl -X GET kongcluster:8000/oidc -u user:password
 
-## Slide 35
-$ http GET kongcluster:8000/oidc -a partner:test
+## Task: View Kong Discovery Information from IDP
+http GET kongcluster:8001/openid-connect/issuers
+### curl -sX GET kongcluster:8001/openid-connect/issuers | jq
+http -b GET kongcluster:8001/openid-connect/issuers | jq -r .data[].issuer
+### curl -sX GET kongcluster:8001/openid-connect/issuers | jq -r .data[].issuer
 
-## Slide 36
-$ http -f POST kongcluster:8001/consumers/employee/plugins name=rate-limiting config.minute=3 config.policy=local Kong-Admin-Token:super-admin
-$ http GET kongcluster:8000/oidc -a employee:test
-$ http GET kongcluster:8000/oidc -a employee:test
-$ http GET kongcluster:8000/oidc -a employee:test
-$ http GET kongcluster:8000/oidc -a employee:test
+## Task: Provide a username/password to Kong and retrieve a token
+# http -b GET kongcluster:8001/plugins | jq .data[].config.auth_methods
+# http -b GET kongcluster:8001/plugins | jq .data[].config.password_param_type
 
-## Slide 37
-$ http -f PATCH kongcluster:8001/plugins/$PLUGIN_ID config.consumer_claim= Kong-Admin-Token:super-admin
-$ RATE_PLUGIN_ID=$(http GET kongcluster:8001/consumers/employee/plugins Kong-Admin-Token:super-admin | jq -r '.data[0] .id')
-$ http DELETE kongcluster:8001/plugins/$RATE_PLUGIN_ID Kong-Admin-Token:super-admin
+# http -f POST https://8080-1-ebf469fd.labs.konghq.com/auth/realms/kong/protocol/openid-connect/token \
+#   grant_type=password \
+#   username=employee \
+#   passowrd=test \
+#   client_id=kong \
+#   client_secret=681d81ee-9ff0-438a-8eca-e9a4f892a96b
+
+http GET kongcluster:8000/oidc -a employee:test
+### curl -X GET kongcluster:8000/oidc -u employee:test
+
+
+## Task: Configure a consumer & modify OIDC plugin to require preferred_username
+http PUT kongcluster:8001/consumers/employee
+### curl -sX PUT kongcluster:8001/consumers/employee | jq
+
+OIDC_PLUGIN_ID=$(http GET kongcluster:8001/routes/my-oidc-route/plugins/ \
+              | jq -r '.data[] | select(.name == "openid-connect") | .id')
+
+### OIDC_PLUGIN_ID=$(curl -sX GET kongcluster:8001/routes/my-oidc-route/plugins/ \
+                  | jq -r '.data[] | select(.name == "openid-connect") | .id')
+
+http -f PATCH kongcluster:8001/plugins/$OIDC_PLUGIN_ID \
+  config.consumer_claim=preferred_username
+
+### curl -sX PATCH kongcluster:8001/plugins/$OIDC_PLUGIN_ID \
+      -d config.consumer_claim=preferred_username \
+      | jq
+
+## Task: Verify authorization works for a user mapped to a Kong consumer
+http GET kongcluster:8000/oidc -a employee:test
+### curl -isX GET kongcluster:8000/oidc -u employee:test
+
+## Task: Verify authorization is forbidden for a user not mapped to a consumer
+http GET kongcluster:8000/oidc -a partner:test
+### curl -isX GET kongcluster:8000/oidc -u partner:test
+
+## Task: Add & Verify Rate Limiting
+
+http -f POST kongcluster:8001/consumers/employee/plugins \
+  name=rate-limiting \
+  config.minute=3 \
+  config.policy=local
+
+### curl -sX POST kongcluster:8001/consumers/employee/plugins \
+      -d name=rate-limiting \
+      -d config.minute=3 \
+      -d config.policy=local \
+      | jq
+
+for ((i=1;i<=5;i++)); do http GET kongcluster:8000/oidc -a employee:test; done
+### for ((i=1;i<=5;i++)); do curl -X GET kongcluster:8000/oidc -u employee:test; done
+
+## Task: Cleanup
+http -f PATCH kongcluster:8001/plugins/$OIDC_PLUGIN_ID \
+  config.consumer_claim= \
+  | jq . | grep consumer_claim
+
+### curl -sX PATCH kongcluster:8001/plugins/$OIDC_PLUGIN_ID \
+      -d config.consumer_claim= \
+      | jq . | grep consumer_claim
+
+RATE_PLUGIN_ID=$(http GET kongcluster:8001/consumers/employee/plugins/ \
+                   | jq -r '.data[] | select(.name == "rate-limiting") | .id') 
+
+### RATE_PLUGIN_ID=$(curl -sX GET kongcluster:8001/consumers/employee/plugins/ \
+                       | jq -r '.data[] | select(.name == "rate-limiting") | .id') 
+
+http DELETE kongcluster:8001/plugins/$RATE_PLUGIN_ID
+### curl -iX DELETE kongcluster:8001/plugins/$RATE_PLUGIN_ID
+
+
 
 ## Slide 41
 $ PLUGIN_ID=$(http GET kongcluster:8001/routes/oidc-route/plugins/ Kong-Admin-Token:super-admin | jq -r '.data[] | select(.name == "openid-connect") | .id')
