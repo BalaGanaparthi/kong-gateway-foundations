@@ -1101,37 +1101,107 @@ RATE_PLUGIN_ID=$(http GET kongcluster:8001/consumers/employee/plugins/ \
 http DELETE kongcluster:8001/plugins/$RATE_PLUGIN_ID
 ### curl -iX DELETE kongcluster:8001/plugins/$RATE_PLUGIN_ID
 
+## Task: Modify the OIDC plugin to search for user roles in a claim
+
+OIDC_PLUGIN_ID=$(http GET kongcluster:8001/routes/my-oidc-route/plugins/ \
+  | jq -r '.data[] | select(.name == "openid-connect") | .id')
+
+### OIDC_PLUGIN_ID=$(curl -sX GET kongcluster:8001/routes/my-oidc-route/plugins/ \
+      | jq -r '.data[] | select(.name == "openid-connect") | .id')
+
+http -f PATCH kongcluster:8001/plugins/$OIDC_PLUGIN_ID \
+  config.consumer_claim= \
+  config.authenticated_groups_claim=realm_access \
+  config.authenticated_groups_claim=roles \
+  | jq -r '.config.authenticated_groups_claim'
+
+### curl -sX PATCH kongcluster:8001/plugins/$OIDC_PLUGIN_ID \
+      -d config.consumer_claim= \
+      -d config.authenticated_groups_claim=realm_access \
+      -d config.authenticated_groups_claim=roles \
+      | jq -r '.config.authenticated_groups_claim'
+
+## Task: Configure the ACL plugin and whitelist access to users with the admins role
+
+http -f POST kongcluster:8001/routes/my-oidc-route/plugins \
+  name=acl \
+  config.whitelist=admins
+
+### curl -isX POST kongcluster:8001/routes/my-oidc-route/plugins \
+      -d name=acl \
+      -d config.whitelist=admins
+
+http GET kongcluster:8000/oidc -a employee:test
+### curl -isX GET kongcluster:8000/oidc -u employee:test
 
 
-## Slide 41
-$ PLUGIN_ID=$(http GET kongcluster:8001/routes/oidc-route/plugins/ Kong-Admin-Token:super-admin | jq -r '.data[] | select(.name == "openid-connect") | .id')
-$ http -f PATCH kongcluster:8001/plugins/$PLUGIN_ID config.consumer_claim= config.authenticated_groups_claim=realm_access config.authenticated_groups_claim=roles Kong-Admin-Token:super-admin
+## Task:  Modify the ACL plugin to require users being members of the role demo-service to access the service
 
-## Slide 42
-$ http -f POST kongcluster:8001/routes/oidc-route/plugins name=acl config.whitelist=admins Kong-Admin-Token:super-admin
-$ http GET kongcluster:8000/oidc -a employee:test
+ACL_PLUGIN_ID=$(http GET kongcluster:8001/routes/my-oidc-route/plugins \
+                  | jq -r '.data[] | select(.name == "acl") | .id')
 
-## Slide 43
-$ ACL_PLUGIN_ID=$(http GET kongcluster:8001/routes/oidc-route/plugins Kong-Admin-Token:super-admin | jq -r '.data[] | select(.name == "acl") | .id')
-$ http -f PATCH kongcluster:8001/routes/oidc-route/plugins/$ACL_PLUGIN_ID config.whitelist=demo-service Kong-Admin-Token:super-admin
-$ http GET kongcluster:8000/oidc -a employee:test
+### ACL_PLUGIN_ID=$(curl -sX GET kongcluster:8001/routes/my-oidc-route/plugins \
+                      | jq -r '.data[] | select(.name == "acl") | .id')
 
-## Slide 44
-$ http DELETE kongcluster:8001/routes/oidc-route/plugins/$ACL_PLUGIN_ID Kong-Admin-Token:super-admin
+http -f PATCH kongcluster:8001/routes/my-oidc-route/plugins/$ACL_PLUGIN_ID \
+  config.whitelist=demo-service
 
-## Slide 47
-$ PLUGIN_ID=$(http GET kongcluster:8001/routes/oidc-route/plugins/ Kong-Admin-Token:super-admin | jq -r '.data[] | select(.name == "openid-connect") | .id')
-$ http -f PATCH kongcluster:8001/plugins/$PLUGIN_ID config.consumer_claim=preferred_username config.consumer_optional=true Kong-Admin-Token:super-admin
+### curl -sX PATCH kongcluster:8001/routes/my-oidc-route/plugins/$ACL_PLUGIN_ID \
+      -d config.whitelist=demo-service \
+      | jq
 
-## Slide 48
-$ http -f POST kongcluster:8001/routes/oidc-route/plugins name=rate-limiting config.minute=5 config.policy=local Kong-Admin-Token:super-admin
+http GET kongcluster:8000/oidc -a employee:test
+### curl -sX GET kongcluster:8000/oidc -u employee:test
 
-## Slide 49
-$ http -f POST kongcluster:8001/consumers/employee/plugins name=rate-limiting config.minute=1000 config.policy=local Kong-Admin-Token:super-admin
-$ http GET kongcluster:8000/oidc -a partner:test
+## Task: Cleanup
+http DELETE kongcluster:8001/routes/my-oidc-route/plugins/$ACL_PLUGIN_ID
+### curl -iX DELETE kongcluster:8001/routes/my-oidc-route/plugins/$ACL_PLUGIN_ID
 
-## Slide 50
-$ http GET kongcluster:8000/oidc -a employee:test
+
+## Task: Modify & verify the plugin to require a scope of admins
+
+OIDC_PLUGIN_ID=$(http GET kongcluster:8001/routes/my-oidc-route/plugins/ \
+                   | jq -r '.data[] | select(.name == "openid-connect") | .id')
+
+### OIDC_PLUGIN_ID=$(curl -sX GET kongcluster:8001/routes/my-oidc-route/plugins/ \
+                       | jq -r '.data[] | select(.name == "openid-connect") | .id')
+
+http -f PATCH kongcluster:8001/plugins/$PLUGIN_ID \
+  config.consumer_claim=preferred_username \
+  config.consumer_optional=true
+
+#### curl -sX PATCH kongcluster:8001/plugins/$PLUGIN_ID \
+       -d config.consumer_claim=preferred_username \
+       -d config.consumer_optional=true \
+       | jq
+
+## Task: Configure Rate Limiting Plugins
+
+http -f POST kongcluster:8001/routes/my-oidc-route/plugins \
+  name=rate-limiting \
+  config.minute=5 \
+  config.policy=local
+
+### curl -iX POST kongcluster:8001/routes/my-oidc-route/plugins \
+      -d name=rate-limiting \
+      -d config.minute=5 \
+      -d config.policy=local
+
+http -f POST kongcluster:8001/consumers/employee/plugins \
+  name=rate-limiting \
+  config.minute=1000 \
+  config.policy=local
+
+### curl -iX POST kongcluster:8001/consumers/employee/plugins \
+      -d name=rate-limiting \
+      -d config.minute=1000 \
+      -d config.policy=local
+  
+## Task: Verify Rate Limits
+for ((i=1;i<=6;i++)); do http GET kongcluster:8000/oidc -a partner:test; done
+### for ((i=1;i<=6;i++)); do curl -iX GET kongcluster:8000/oidc -u partner:test; done
+for ((i=1;i<=12;i++)); do http GET kongcluster:8000/oidc -a employee:test; done
+### for ((i=1;i<=12;i++)); do curl -iX GET kongcluster:8000/oidc -u employee:test; done
 
 
 # 05 - Troubleshooting
