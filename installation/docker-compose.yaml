@@ -12,6 +12,9 @@ services:
 #^  image: jboss/keycloak:16.1.1
 #^  container_name: keycloak
 #^  hostname: keycloak
+#^  depends_on:	
+#^    kong-dp:	
+#^      condition: service_healthy
 #^  command: -Dkeycloak.profile.feature.upload_scripts=enabled
 #^  volumes:
 #^    - /data:/data
@@ -92,9 +95,7 @@ services:
       KONG_PG_PASSWORD: kong
       KONG_PG_MAX_CONCURRENT_QUERIES: 5
       KONG_ADMIN_ACCESS_LOG: /srv/shared/logs/admin_access.log
-      KONG_ADMIN_ERROR_LOG: /srv/shared/logs/error_access.log
-      #KONG_ADMIN_GUI_ACCESS_LOG: /dev/stdout
-      #KONG_ADMIN_GUI_ERROR_LOG: /dev/stderr
+      KONG_ADMIN_ERROR_LOG: /srv/shared/logs/admin_error.log
       KONG_ADMIN_GUI_ACCESS_LOG: /srv/shared/logs/admingui_access.log
       KONG_ADMIN_GUI_ERROR_LOG: /srv/shared/logs/admingui_error.log
       KONG_PORTAL_API_ACCESS_LOG: /srv/shared/logs/portalapi_access.log
@@ -177,8 +178,10 @@ services:
       KONG_PROXY_LISTEN: "0.0.0.0:8000, 0.0.0.0:8443 http2 ssl"
       KONG_STREAM_LISTEN: "0.0.0.0:5555, 0.0.0.0:5556 ssl reuseport backlog=65536"
       KONG_STATUS_LISTEN: "0.0.0.0:8101"
-      KONG_PROXY_ACCESS_LOG: "/srv/shared/logs/proxy_access.log"
-      KONG_PROXY_ERROR_LOG: "/srv/shared/logs/proxy_error.log"
+      KONG_PROXY_ACCESS_LOG: /srv/shared/logs/proxy_access.log
+      KONG_PROXY_ERROR_LOG: /srv/shared/logs/proxy_error.log
+#!    KONG_PROXY_STREAM_ACCESS_LOG: /srv/shared/logs/proxystream_access.log	
+#!    KONG_PROXY_STREAM_ERROR_LOG: /srv/shared/logs/proxystream_error.log
       KONG_DATABASE: "off"
       #KONG_LICENSE_DATA: ${KONG_LICENSE_DATA}
       KONG_ANONYMOUS_REPORTS: "off"
@@ -186,6 +189,12 @@ services:
       KONG_SSL_CERT_KEY: "/srv/shared/ssl/wildcard.key"
       KONG_SSL_CERT: "/srv/shared/ssl/wildcard.pem"
       KONG_NGINX_WORKER_PROCESSES: 1
+#!    KONG_TRACING: "on"
+#!    KONG_TRACING_WRITING_STRATEGY: file
+#!    KONG_TRACING_TYPES: all
+#!    KONG_TRACING_TIME_THRESHOLD: 0
+#!    KONG_TRACING_WRITE_END_POINT: /srv/shared/logs/granular_tracing.log
+#!    KONG_TRACING_DEBUG_HEADER: X-Trace
     healthcheck:
       test: ["CMD", "kong", "health"]
       interval: 10s

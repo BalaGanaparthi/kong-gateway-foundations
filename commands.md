@@ -1206,16 +1206,27 @@ for ((i=1;i<=12;i++)); do http GET kongcluster:8000/oidc -a employee:test; done
 
 # 05 - Troubleshooting
 
-## Slide 12
-$ http kongcluster:8001 Kong-Admin-Token:super-admin > 8001.out
-$ jq . 8001.out | less
+## Triage, Examine, Diagnose
+http GET kongcluster:8001
+### curl -sX GET kongcluster:8001 | jq
+http GET kongcluster:8001/status
+### curl -sX GET kongcluster:8001/status | jq
+http GET kongcluster:8001/metrics
+### curl -X GET kongcluster:8001/metrics
 
-## Slide 13
-$ http kongcluster:8001/status Kong-Admin-Token:super-admin > 8001-status.out
-$ jq . 8001-status.out | less
+## Task: Gather :8001/ information
+http GET kongcluster:8001 | jq '.' > 8001.json
+### curl -sX GET kongcluster:8001 | jq '.' > 8001.json
+jq -C '.' 8001.json | less -R
 
-## Slide 14
-$ cat /srv/shared/logs/proxy_error.log
+## Task: Gather :8001/status information
+http GET kongcluster:8001/status | jq '.' > 8001-status.json
+### curl -sX GET kongcluster:8001/status | jq '.' > 8001-status.json
+jq -C '.' 8001-status.json | less -R
+
+## Task: Explore Error Logs
+cat /srv/shared/logs/proxy_error.log  | grep oidc | grep consumer
+
 
 ## Slide 19
 $ curl -o /dev/null --trace-time -ivv -L https://www.google.com
