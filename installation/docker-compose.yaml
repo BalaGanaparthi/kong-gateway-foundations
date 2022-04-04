@@ -193,7 +193,7 @@ services:
       KONG_TRACING_WRITING_STRATEGY: "file"
       KONG_TRACING_TYPES: "all"
       KONG_TRACING_TIME_THRESHOLD: 0
-      KONG_TRACING_WRITE_ENDPOINT: /srv/shared/logs/granular_tracing.log basic
+      KONG_TRACING_WRITE_ENDPOINT: /srv/shared/logs/granular_tracing.log
       KONG_TRACING_DEBUG_HEADER: X-Trace
     healthcheck:
       test: ["CMD", "kong", "health"]
