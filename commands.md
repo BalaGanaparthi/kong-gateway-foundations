@@ -1027,16 +1027,36 @@ http GET kongcluster:8001/openid-connect/issuers
 http -b GET kongcluster:8001/openid-connect/issuers | jq -r .data[].issuer
 ### curl -sX GET kongcluster:8001/openid-connect/issuers | jq -r .data[].issuer
 
-## Task: Provide a username/password to Kong and retrieve a token
-# http -b GET kongcluster:8001/plugins | jq .data[].config.auth_methods
-# http -b GET kongcluster:8001/plugins | jq .data[].config.password_param_type
+## Task: Confirm Keycloak is configured for Password Grant
 
-# http -f POST https://8080-1-ebf469fd.labs.konghq.com/auth/realms/kong/protocol/openid-connect/token \
-#   grant_type=password \
-#   username=employee \
-#   passowrd=test \
-#   client_id=kong \
-#   client_secret=681d81ee-9ff0-438a-8eca-e9a4f892a96b
+OIDC_PLUGIN_ID=$(http GET kongcluster:8001/routes/my-oidc-route/plugins/ \
+              | jq -r '.data[] | select(.name == "openid-connect") | .id')
+
+### OIDC_PLUGIN_ID=$(curl -sX GET kongcluster:8001/routes/my-oidc-route/plugins/ \
+                  | jq -r '.data[] | select(.name == "openid-connect") | .id')
+
+http -b GET kongcluster:8001/plugins/$OIDC_PLUGIN_ID | jq .config.auth_methods
+### curl -sX GET kongcluster:8001/plugins/$OIDC_PLUGIN_ID | jq .config.auth_methods
+http -b GET kongcluster:8001/plugins/$OIDC_PLUGIN_ID | jq .config.password_param_type
+### curl -sX GET kongcluster:8001/plugins/$OIDC_PLUGIN_ID | jq .config.password_param_type
+
+## Task: Get an Access Token from Keycloak for User
+
+ACCESS_TOKEN=$(http -f POST $KEYCLOAK_URI/auth/realms/kong/protocol/openid-connect/token \
+                 grant_type=password \
+                 client_id=kong \
+                 client_secret=$CLIENT_SECRET \
+                 username=employee \
+                 password=test \
+                 | jq .access_token)
+
+curl -X POST https://8080-1-ebf469fd.labs.konghq.com/auth/realms/kong/protocol/openid-connect/token \
+  -d grant_type=password \
+  -d username=employee \
+  -d passowrd=test \
+  -d client_id=kong \
+  -d client_secret=$CLIENT_SECRET
+
 
 http GET kongcluster:8000/oidc -a employee:test
 ### curl -X GET kongcluster:8000/oidc -u employee:test
@@ -1046,11 +1066,9 @@ http GET kongcluster:8000/oidc -a employee:test
 http PUT kongcluster:8001/consumers/employee
 ### curl -sX PUT kongcluster:8001/consumers/employee | jq
 
-OIDC_PLUGIN_ID=$(http GET kongcluster:8001/routes/my-oidc-route/plugins/ \
-              | jq -r '.data[] | select(.name == "openid-connect") | .id')
 
-### OIDC_PLUGIN_ID=$(curl -sX GET kongcluster:8001/routes/my-oidc-route/plugins/ \
-                  | jq -r '.data[] | select(.name == "openid-connect") | .id')
+
+
 
 http -f PATCH kongcluster:8001/plugins/$OIDC_PLUGIN_ID \
   config.consumer_claim=preferred_username

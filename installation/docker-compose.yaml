@@ -12,8 +12,8 @@ services:
 #^  image: jboss/keycloak:16.1.1
 #^  container_name: keycloak
 #^  hostname: keycloak
-#^  depends_on:	
-#^    kong-dp:	
+#^  depends_on:
+#^    kong-dp:
 #^      condition: service_healthy
 #^  command: -Dkeycloak.profile.feature.upload_scripts=enabled
 #^  volumes:
@@ -180,7 +180,7 @@ services:
       KONG_STATUS_LISTEN: "0.0.0.0:8101"
       KONG_PROXY_ACCESS_LOG: /srv/shared/logs/proxy_access.log
       KONG_PROXY_ERROR_LOG: /srv/shared/logs/proxy_error.log
-#!    KONG_PROXY_STREAM_ACCESS_LOG: /srv/shared/logs/proxystream_access.log	
+#!    KONG_PROXY_STREAM_ACCESS_LOG: /srv/shared/logs/proxystream_access.log
 #!    KONG_PROXY_STREAM_ERROR_LOG: /srv/shared/logs/proxystream_error.log
       KONG_DATABASE: "off"
       #KONG_LICENSE_DATA: ${KONG_LICENSE_DATA}
