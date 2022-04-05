@@ -57,6 +57,9 @@ services:
     image: kong/kong-gateway:2.8-alpine
     container_name: kong-migrations
     hostname: kong-migrations
+    depends_on:
+      postgres:
+        condition: service_healthy
     command: kong migrations bootstrap
     environment:
       KONG_DATABASE: postgres
@@ -74,7 +77,7 @@ services:
     image: kong/kong-gateway:2.8-alpine
     container_name: kong-cp
     hostname: kong-cp
-    user: "${KONG_USER:-kong}"
+    user: kong
     depends_on:
       postgres:
         condition: service_healthy
@@ -226,14 +229,19 @@ services:
       timeout: 5s
       retries: 25        
     ports:
-    # - "25:1025/tcp"
-      - "1080:1080/tcp"
+   #- "25:1025/tcp"
+    - "1080:1080/tcp"
 
-#%httpbin:
-#%  networks:
-#%    - kong-edu-net
-#%  image: "kennethreitz/httpbin"
-#%  container_name: httpbin
-#%  hostname: httpbin
-#%  ports:
-#%    - "80:80/tcp"
+  mockbin:
+    networks:
+    - kong-edu-net
+    image: "mashape/mockbin"
+    container_name: mockbin
+    hostname: mockbin
+    healthcheck:
+      test: ["CMD-SHELL", "exit 0"]
+      interval: 15s
+      timeout: 5s
+      retries: 25        
+    ports:
+    - "8888:8888/tcp"
