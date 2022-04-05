@@ -30,9 +30,12 @@ http –headers POST kongcluster:8001/licenses \
   payload=@/etc/kong/license.json \ 
   | grep HTTP
 
-### curl -siX POST kongcluster:8001/licenses \
+### curl -isX POST kongcluster:8001/licenses \
       -F payload=@/etc/kong/license.json \
       | grep HTTP
+
+http GET kongcluster:8001/license/report
+### curl -sX GET kongcluster:8001/license/report | jq
 
 ## Task: Recreate/Restart the CP to enable EE features
 
@@ -41,7 +44,10 @@ docker-compose rm -f kong-cp
 docker-compose up -d kong-cp
 
 ## Task: Enable the Developer Portal:
-http --form PATCH kongcluster:8001/workspaces/default config.portal=true
+
+http --form PATCH kongcluster:8001/workspaces/default \
+  config.portal=true
+
 ### curl -sX PATCH kongcluster:8001/workspaces/default \
       -d "config.portal=true" \
       | jq
@@ -64,8 +70,9 @@ http POST $KONG_PORTAL_API_URI/default/register <<< '{"email":"myemail@example.c
 http PATCH "$KONG_ADMIN_API_URI/default/developers/myemail@example.com" <<< '{"status": 0}'
 
 ### curl -sX PATCH "$KONG_ADMIN_API_URI/default/developers/myemail@example.com" \
-      --header 'Content-Type: application/json' \
-      --data-raw '{"status": 0}'
+      -H 'Content-Type: application/json' \
+      -d '{"status": 0}' \
+      | jq
 
 ## Task: Add an API Spec to test
 http --form POST kongcluster:8001/files \
@@ -126,10 +133,10 @@ deck sync \
   --state deck/gwopslabdump.yaml \
   --workspace default
 
-## Upgrading Kong Gateway
-
+## Kong Upgrade Lab
 cd ~/kong-gateway-operations/installation
 docker-compose down
+
 ## Task: Create a dedicated docker network and a database container
 docker network create kong-edu-net
 docker run -d --name kong-ee-database --network kong-edu-net \
@@ -140,6 +147,7 @@ docker run -d --name kong-ee-database --network kong-edu-net \
   postgres:13.1
 
 ## Task: Bootstrap the Database for Kong 2.5.1.2
+export KONG_LICENSE_DATA=`cat "/etc/kong/license.json"` 
 docker run --rm --network kong-edu-net \
   -e "KONG_DATABASE=postgres" \
   -e "KONG_PG_HOST=kong-ee-database" \
@@ -275,6 +283,7 @@ http POST kongcluster:8001/services/httpbin/routes \
 ### curl -X POST kongcluster:8001/services/httpbin/routes \
       -d "name=httpbin" \
       -d "paths[]=/httpbin"
+
 
 export KONG_VERSION="2.6.0.1-alpine"
 docker-compose -f kongupgdemo.yaml up -d
