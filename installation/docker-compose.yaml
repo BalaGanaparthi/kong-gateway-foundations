@@ -244,4 +244,4 @@ services:
       timeout: 5s
       retries: 25        
     ports:
-    - "8888:8888/tcp"
+    - "8888:8080/tcp"
