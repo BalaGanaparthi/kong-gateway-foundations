@@ -24,11 +24,11 @@ services:
 #^    KEYCLOAK_PASSWORD: admin
 #^    KEYCLOAK_IMPORT: "/data/kong_realm_template.json"
 #^    PROXY_ADDRESS_FORWARDING: "true"
-#^    healthcheck:
-#^      test: ["CMD", "curl", "-f", "$KEYCLOAK_URI/auth/realms/master"]
-#^      interval: 5s
-#^      timeout: 2s
-#^      retries: 24
+#^  healthcheck:
+#^    test: ["CMD", "curl", "-f", "$KEYCLOAK_URI/auth/realms/master"]
+#^    interval: 5s
+#^    timeout: 2s
+#^    retries: 24
 #^  ports:
 #^    - 8080:8080
 
@@ -220,6 +220,11 @@ services:
     depends_on:
       kong-cp:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "$KONG_ADMIN_API_URI/status", "-H", "Kong-Admin-Token:my_token"]
+      interval: 5s
+      timeout: 2s
+      retries: 24        
     ports:
     # - "25:1025/tcp"
       - "1080:1080/tcp"
