@@ -127,7 +127,7 @@ services:
       KONG_ADMIN_GUI_SSL_CERT_KEY: "/srv/shared/ssl/wildcard.key"
       KONG_ADMIN_GUI_SSL_CERT: "/srv/shared/ssl/wildcard.pem"
       KONG_ADMIN_GUI_AUTH: "basic-auth"
-      KONG_ADMIN_GUI_SESSION_CONF: {"cookie_name":"manager-session","secret":"this_is_my_other_secret","storage":"kong","cookie_secure":true,"cookie_lifetime":36000}
+      KONG_ADMIN_GUI_SESSION_CONF: {"cookie_name":"manager-session","secret":"this_is_my_other_secret","storage":"kong","cookie_secure":true,"cookie_lifetime":"36000"}
       KONG_PORTAL: "on"
       KONG_PORTAL_GUI_PROTOCOL: "https"
       #KONG_PORTAL_GUI_HOST: "portal.kong.lan:8446"
