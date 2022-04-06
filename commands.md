@@ -92,22 +92,23 @@ sed -i "s|KONG_ADMIN_API_URI|$KONG_ADMIN_API_URI|g" deck/deck.yaml
 cp deck/deck.yaml ~/.deck.yaml
 
 http POST kongcluster:8001/services \
-  name=httpbin \
-  url=https://httpbin.org/anything
+  name=mockbin \
+  url=http://mockbin/request
 
-###  curl -X POST kongcluster:8001/services \
-       -d "name=httpbin" \
-       -d "url=https://httpbin.org/anything" \
+### curl -sX POST kongcluster:8001/services \
+       -d "name=mockbin" \
+       -d "url=https://mockbin/request" \
        | jq
 
-http POST kongcluster:8001/services/httpbin/routes \
-  name=httpbin \
-  paths:='["/httpbin"]'
+http POST kongcluster:8001/services/mockbin/routes \
+  name=mockbin \
+  paths:='["/mockbin"]'
 
-### curl -X POST kongcluster:8001/services/httpbin/routes \
-      -d "name=httpbin" \
-      -d "paths=/httpbin" \
+### curl -sX POST kongcluster:8001/services/mockbin/routes \
+      -d "name=mockbin" \
+      -d "paths=/mockbin" \
       | jq
+
 
 ## Task: Save/Load Kong configuration using decK
 
@@ -132,6 +133,12 @@ deck sync \
 deck sync \
   --state deck/gwopslabdump.yaml \
   --workspace default
+
+Created service mockbin is consumable here:
+http GET kongcluster:8000/mockbin
+### curl -iX GET kongcluster:8000/mockbin
+http --verify no GET https://kongcluster:8443/mockbin
+### curl -k -iX GET https://kongcluster:8443/mockbin
 
 ## Kong Upgrade Lab
 cd ~/kong-gateway-operations/installation
@@ -185,21 +192,21 @@ http GET kongcluster:8001 | jq .version
 ### curl -sX GET kongcluster:8001 | jq .version
 
 http POST kongcluster:8001/services \
-  name=httpbin \
-  url=https://httpbin.org/anything
+  name=mockbin \
+  url=http://mockbin/request
 
 ### curl -sX POST kongcluster:8001/services \
-      -d "name=httpbin" \
-      -d "url=https://httpbin.org/anything" \
-      | jq
+       -d "name=mockbin" \
+       -d "url=https://mockbin/request" \
+       | jq
 
-http POST kongcluster:8001/services/httpbin/routes \
-    name=httpbin \
-    paths:='["/httpbin"]'
+http POST kongcluster:8001/services/mockbin/routes \
+  name=mockbin \
+  paths:='["/mockbin"]'
 
-### curl -sX POST kongcluster:8001/services/httpbin/routes \
-      -d 'name=httpbin' \
-      -d 'paths[]=/httpbin' \
+### curl -sX POST kongcluster:8001/services/mockbin/routes \
+      -d "name=mockbin" \
+      -d "paths=/mockbin" \
       | jq
 
 ## Task: Run the 2.6 migrations
@@ -248,8 +255,8 @@ docker run -d --name kong-ee-edu --network kong-edu-net \
   kong/kong-gateway:2.6.0.1-alpine
 
 ## Task: Confirm upgrade and persistence of data
-http --headers GET kongcluster:8000/httpbin
-### curl -IX GET kongcluster:8000/httpbin
+http --headers GET kongcluster:8000/mockbin
+### curl -IX GET kongcluster:8000/mockbin
 
 ## Task: Clean up Lab
 
@@ -269,30 +276,32 @@ http GET kongcluster:8001 \
       | jq '.hostname + " " + .version'
 
 http POST kongcluster:8001/services \
-  name=httpbin \
-  url=https://httpbin.org/anything
+  name=mockbin \
+  url=http://mockbin/request
 
-### curl -X POST kongcluster:8001/services \
-      -d "name=httpbin" \
-      -d "url=https://httpbin.org/anything"
+### curl -sX POST kongcluster:8001/services \
+       -d "name=mockbin" \
+       -d "url=https://mockbin/request" \
+       | jq
 
-http POST kongcluster:8001/services/httpbin/routes \
-  name=httpbin \
-  paths:='["/httpbin"]'
+http POST kongcluster:8001/services/mockbin/routes \
+  name=mockbin \
+  paths:='["/mockbin"]'
 
-### curl -X POST kongcluster:8001/services/httpbin/routes \
-      -d "name=httpbin" \
-      -d "paths[]=/httpbin"
+### curl -sX POST kongcluster:8001/services/mockbin/routes \
+      -d "name=mockbin" \
+      -d "paths=/mockbin" \
+      | jq
+
 
 
 export KONG_VERSION="2.6.0.1-alpine"
 docker-compose -f kongupgdemo.yaml up -d
 
-http --headers GET kongcluster:8000/httpbin
-### curl -IX GET kongcluster:8000/httpbin
+http --headers GET kongcluster:8000/mockbin
+### curl -IX GET kongcluster:8000/mockbin
 
 docker-compose -f kongupgdemo.yaml down -v
-
 
 
 # 02 - Securing Kong Gatway
@@ -300,7 +309,7 @@ docker-compose -f kongupgdemo.yaml down -v
 ## Lab: Securing Kong Gateway
 cd
 git clone https://github.com/gigaprimatus/kong-gateway-operations.git
-source kong-gatway-oprations/installation/scram.sh
+source kong-gatway-operations/installation/scram.sh
 
 ## Task: Create New Role my_role and add Permissions
 http POST kongcluster:8001/rbac/roles name=my_role
@@ -365,7 +374,7 @@ sed -i 's|:60|:36000|g' docker-compose.yaml
 docker-compose stop kong-cp; docker-compose rm -f kong-cp; docker-compose up -d kong-cp
 
 
-## Task: Verify Authentication with Kong Manager
+## Task: Verify Authentication with Admin API
 http --headers GET kongcluster:8001/services
 ### curl -sX GET kongcluster:8001/services
 http --headers GET kongcluster:8001/services Kong-Admin-Token:my_token
@@ -517,34 +526,37 @@ http GET kongcluster:8001/WorkspaceB/rbac/users Kong-Admin-Token:AdminA_token
 
 ## Task: Deploy a service to WorkspaceA with correct Admin
 http POST kongcluster:8001/WorkspaceA/services \
-  name=mocking_service \
-  url='http://mockbin.org' \
-  Kong-Admin-Token:AdminB_token
-
-### curl -sX POST kongcluster:8001/WorkspaceA/services \
-  -d name=mocking_service \
-  -d url='http://mockbin.org' \
-  -H Kong-Admin-Token:AdminB_token \
-  | jq
-
-http POST kongcluster:8001/WorkspaceA/services \
-  name=mocking_service \
-  url='http://mockbin.org' \
+  name=mockbin_service \
+  url='http://mockbin' \
   Kong-Admin-Token:AdminA_token
 
 ### curl -sX POST kongcluster:8001/WorkspaceA/services \
-  -d name=mocking_service \
-  -d url='http://mockbin.org' \
+  -d name=mockbin_service \
+  -d url='http://mockbin' \
   -H Kong-Admin-Token:AdminA_token \
   | jq
 
-http POST kongcluster:8001/WorkspaceA/services/mocking_service/routes \
+http POST kongcluster:8001/WorkspaceA/services/mockbin_service/routes \
   name=mocking \
   hosts:='["myhost.me"]' \
   paths:='["/mocker"]' \
   Kong-Admin-Token:AdminA_token
 
-### curl -sX POST kongcluster:8001/WorkspaceA/services/mocking_service/routes \
+### curl -sX POST kongcluster:8001/WorkspaceA/services/mockbin_service/routes \
+      -d name=mocking \
+      -d hosts="myhost.me" \
+      -d paths="/mocker" \
+      -H Kong-Admin-Token:AdminA_token \
+      | jq
+
+
+http POST kongcluster:8001/WorkspaceA/services/mockbin_service/routes \
+  name=mocking \
+  hosts:='["myhost.me"]' \
+  paths:='["/mocker"]' \
+  Kong-Admin-Token:AdminA_token
+
+### curl -sX POST kongcluster:8001/WorkspaceA/services/mockbin_service/routes \
       -d name=mocking \
       -d hosts="myhost.me" \
       -d paths="/mocker" \

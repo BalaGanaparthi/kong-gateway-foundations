@@ -226,7 +226,7 @@ services:
     healthcheck:
       test: ["CMD-SHELL", "exit 0"]
       interval: 15s
-      timeout: 5s
+      timeout: 15s
       retries: 25        
     ports:
    #- "25:1025/tcp"
@@ -241,7 +241,7 @@ services:
     healthcheck:
       test: ["CMD-SHELL", "exit 0"]
       interval: 15s
-      timeout: 5s
+      timeout: 15s
       retries: 25        
     ports:
     - "8888:8080/tcp"
