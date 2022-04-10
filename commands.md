@@ -1361,11 +1361,43 @@ deck sync --state broken-lab1.yaml
 http --headers GET $KONG_PROXY_URI/mockbin/request?apikey=JanePassword | head -1
 ## curl -IX GET $KONG_PROXY_URI/mockbin/request?apikey=JanePassword | head -1
 
+## Broken Lab Scenario 1: Solution 
+
+http PATCH kongcluster:8001/services/mockbin protocol=http
+### curl -sX PATCH kongcluster:8001/services/mockbin \
+      -d protocol=http \
+      | jq
+
+## Task: Broken Lab Scenario 2
+cd ~/kong-gateway-operations/troubleshooting
+deck sync --state broken-lab2.yaml
+http GET $KONG_PROXY_URI/mockbin X-with-ID:true
+
+## Broken Lab Scenario 2: Solution 
+
+CORL_PLUGIN_ID=$(http GET kongcluster:8001/routes/correlation/plugins/ \
+              | jq -r '.data[] | select(.name == "correlation-id") | .id')
+
+### OIDC_PLUGIN_ID=$(curl -sX GET kongcluster:8001/routes/my-oidc-route/plugins/ \
+                  | jq -r '.data[] | select(.name == "openid-connect") | .id')
+
+http -f PATCH kongcluster:8001/plugins/$CORL_PLUGIN_ID \
+  config.generator=uuid
+
+### curl -sX PATCH kongcluster:8001/plugins/$OIDC_PLUGIN_ID \
+      -d config.consumer_claim=preferred_username \
+      | jq
+
+TRNS_PLUGIN_ID=$(http GET kongcluster:8001/routes/nocorrelation/plugins/ \
+              | jq -r '.data[] | select(.name == "request-transformer") | .id')
+
+### TRNS_PLUGIN_ID=$(curl -sX GET kongcluster:8001/routes/nocorrelation/plugins/ \
+                  | jq -r '.data[] | select(.name == "request-transformer") | .id')
+
+http DELETE kongcluster:8001/plugins/$TRNS_PLUGIN_ID
+### curl -sX DELETE kongcluster:8001/plugins/$TRNS_PLUGIN_ID
 
 
-
-## Slide 25
-$ echo $KONG_PROXY_URI
 
 # 06 - Kong Vitals
 
