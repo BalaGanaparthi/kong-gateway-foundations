@@ -1401,11 +1401,68 @@ http DELETE kongcluster:8001/plugins/$TRNS_PLUGIN_ID
 
 # 06 - Kong Vitals
 
-## Slide 10
-$ for ((i=1;i<=20;i++)); do sleep 1; http GET $KONG_PROXY_URI/mock/request?apikey=JanePassword; done
+## Task: Configure Service/Route/Consumer/Plugins
+http POST kongcluster:8001/services \
+  name=mockbin \
+  url=http://mockbin:8080/request
 
-## Slide 12
-$ http kongcluster:8001/default/vitals/status_code_classes?interval=seconds  Kong-Admin-Token:super-admin | jq .meta
+### curl -sX POST kongcluster:8001/services \
+       -d "name=mockbin" \
+       -d "url=http://mockbin:8080/request" \
+       | jq
+
+http -f POST kongcluster:8001/services/mockbin/routes \
+  name=mockbin \
+  paths=/mockbin
+
+### curl -sX POST kongcluster:8001/services/mockbin/routes \
+      -d "name=mockbin" \
+      -d "paths=/mockbin" \
+      | jq
+      
+http -f POST kongcluster:8001/services/mockbin/plugins \
+  name=rate-limiting \
+  config.minute=5 \
+  config.policy=local
+
+### curl -sX POST kongcluster:8001/services/mockbin/plugins \
+      -d name=rate-limiting \
+      -d config.minute=5 \
+      -d config.policy=local \
+      | jq
+
+http POST kongcluster:8001/services/mockbin/plugins name=key-auth
+### curl -sX POST kongcluster:8001/services/mockbin/plugins \
+      -d name=key-auth \
+      | jq
+
+http POST kongcluster:8001/consumers username=Jane
+### curl -sX POST kongcluster:8001/consumers \
+      -d username=Jane \
+      | jq
+
+http POST kongcluster:8001/consumers/Jane/key-auth key=JanePassword
+### curl -sX POST kongcluster:8001/consumers/Jane/key-auth \
+      -d key=JanePassword \
+      | jq
+
+
+## Task: Let's Create Some Traffic 
+(for ((i=1;i<=20;i++))
+   do
+     sleep 1
+     http -h GET $KONG_PROXY_URI/mockbin/request?apikey=JanePassword
+   done)
+
+### (for ((i=1;i<=20;i++))
+       do
+         sleep 1
+         curl -IsX GET $KONG_PROXY_URI/mockbin/request?apikey=JanePassword
+       done)
+
+## Task: View Metrics
+http GET kongcluster:8001/default/vitals/status_code_classes?interval=seconds | jq .meta
+### curl -sX GET kongcluster:8001/default/vitals/status_code_classes?interval=seconds | jq .meta
 
 # 07 - Advanced Plugins review
 
