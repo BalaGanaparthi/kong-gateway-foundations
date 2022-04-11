@@ -1278,6 +1278,7 @@ http -f POST kongcluster:8001/consumers/employee/plugins \
       | jq
   
 ## Task: Verify Rate Limits
+
 for ((i=1;i<=6;i++)); do http GET kongcluster:8000/oidc -a partner:test; done
 ### for ((i=1;i<=6;i++)); do curl -iX GET kongcluster:8000/oidc -u partner:test; done
 for ((i=1;i<=12;i++)); do http GET kongcluster:8000/oidc -a employee:test; done
@@ -1288,6 +1289,7 @@ for ((i=1;i<=12;i++)); do http GET kongcluster:8000/oidc -a employee:test; done
 # 05 - Troubleshooting
 
 ## Triage, Examine, Diagnose
+
 http GET kongcluster:8001
 ### curl -sX GET kongcluster:8001 | jq
 http GET kongcluster:8001/status
@@ -1296,19 +1298,23 @@ http GET kongcluster:8001/metrics
 ### curl -X GET kongcluster:8001/metrics
 
 ## Task: Gather :8001/ information
+
 http GET kongcluster:8001 | jq '.' > 8001.json
 ### curl -sX GET kongcluster:8001 | jq '.' > 8001.json
 jq -C '.' 8001.json | less -R
 
 ## Task: Gather :8001/status information
+
 http GET kongcluster:8001/status | jq '.' > 8001-status.json
 ### curl -sX GET kongcluster:8001/status | jq '.' > 8001-status.json
 jq -C '.' 8001-status.json | less -R
 
 ## Task: Explore Error Logs
+
 cat /srv/shared/logs/proxy_error.log  | grep oidc | grep consumer
 
 ## Task: Use Debug Header to see used Service/Route
+
 http POST kongcluster:8001/services name=mockbin url=http://mockbin:8080/request
 ### curl -sX POST kongcluster:8001/services \
       -d name=mockbin \
@@ -1325,6 +1331,7 @@ http -h GET kongcluster:8000/mockbin Kong-Debug:1
 ### curl -IX GET kongcluster:8000/mockbin -H Kong-Debug:1
 
 ## Task: Use Granular Tracing to Log Details
+
 http POST kongcluster:8001/services/mockbin/plugins name=key-auth
 ### curl -sX POST kongcluster:8001/services/mockbin/plugins \
       -d name=key-auth \
@@ -1350,11 +1357,13 @@ http -h GET kongcluster:8000/mockbin X-Trace:1 | head -1
 cat /srv/shared/logs/granular_tracing.log | less
 
 ## Task: Network troubleshooting with cURL
+
 curl -svv --fail --trace-time https://api.github.com/repos/kong/kong | jq
 
 curl -o /dev/null --silent --show-error --write-out '\n\nlookup: %{time_namelookup}\nconnect: %{time_connect}\nappconnect: %{time_appconnect}\npretransfer: %{time_pretransfer}\nredirect: %{time_redirect}\nstarttransfer: %{time_starttransfer}\ntotal: %{time_total}\nsize: %{size_download}\n\n' 'https://api.github.com/repos/kong/kong'
 
 ## Task: Broken Lab Scenario 1
+
 cd ~/kong-gateway-operations/troubleshooting
 deck sync --state broken-lab1.yaml
 
@@ -1369,6 +1378,7 @@ http PATCH kongcluster:8001/services/mockbin protocol=http
       | jq
 
 ## Task: Broken Lab Scenario 2
+
 cd ~/kong-gateway-operations/troubleshooting
 deck sync --state broken-lab2.yaml
 http GET $KONG_PROXY_URI/mockbin X-with-ID:true
@@ -1402,6 +1412,7 @@ http DELETE kongcluster:8001/plugins/$TRNS_PLUGIN_ID
 # 06 - Kong Vitals
 
 ## Task: Configure Service/Route/Consumer/Plugins
+
 http POST kongcluster:8001/services \
   name=mockbin \
   url=http://mockbin:8080/request
@@ -1448,6 +1459,7 @@ http POST kongcluster:8001/consumers/Jane/key-auth key=JanePassword
 
 
 ## Task: Let's Create Some Traffic 
+
 (for ((i=1;i<=20;i++))
    do
      sleep 1
@@ -1461,20 +1473,62 @@ http POST kongcluster:8001/consumers/Jane/key-auth key=JanePassword
        done)
 
 ## Task: View Metrics
+
 http GET kongcluster:8001/default/vitals/status_code_classes?interval=seconds | jq .meta
 ### curl -sX GET kongcluster:8001/default/vitals/status_code_classes?interval=seconds | jq .meta
 
 # 07 - Advanced Plugins review
 
-## Slide 14
-$ http POST kongcluster:8001/services name=numberfun url='http://numbersapi.com/random/year' Kong-Admin-Token:super-admin
-$ http -f POST kongcluster:8001/services/numberfun/routes name=numberfun_route paths=/randomyear Kong-Admin-Token:super-admin
+## Task: Create a service with a route
 
-## Slide 15
-$ http POST kongcluster:8001/consumers username=Joe Kong-Admin-Token:super-admin
-$ http POST kongcluster:8001/consumers/Joe/key-auth key=JoePassword Kong-Admin-Token:super-admin
-$ http POST kongcluster:8001/plugins name=key-auth Kong-Admin-Token:super-admin
-$ for ((i=1;i<=20;i++)); do sleep 1; http GET kongcluster:8000/randomyear?apikey=JoePassword; done
+http POST kongcluster:8001/services \
+    name=numberfun \
+    url=http://numbersapi.com/random/year
+
+### curl -sX POST kongcluster:8001/services \
+      -d name=numberfun \
+      -d url=http://numbersapi.com/random/year \
+      | jq
+
+http -f POST kongcluster:8001/services/numberfun/routes \
+    name=numberfun_route \
+    paths=/randomyear
+
+### curl -sX POST kongcluster:8001/services/numberfun/routes \
+      -d name=numberfun_route \
+      -d paths=/randomyear \
+      | jq
+
+## Task: Enable key-auth, Create consumer and assign credentials
+
+http POST kongcluster:8001/consumers username=Joe
+### curl -sX POST kongcluster:8001/consumers \
+         -d username=Joe \
+         | jq
+
+http POST kongcluster:8001/plugins name=key-auth
+### curl -sX POST kongcluster:8001/plugins \
+         -d name=key-auth \
+         | jq
+
+http POST kongcluster:8001/consumers/Joe/key-auth key=JoePassword
+### curl -sX POST kongcluster:8001/consumers/Joe/key-auth \
+         -d key=JoePassword \
+         | jq
+
+## Task: Now Let's Create Some Traffic for User 'Joe'
+
+(for ((i=1;i<=20;i++))
+   do
+     sleep 1
+     http GET $KONG_PROXY_URI/randomyear?apikey=JoePassword
+   done)
+
+### (for ((i=1;i<=20;i++))
+       do
+         sleep 1
+         curl -isX GET $KONG_PROXY_URI/randomyear?apikey=JoePassword
+       done)
 
 ## Slide 18
 $ http --form POST kongcluster:8001/plugins name=rate-limiting-advanced config.limit=5 config.window_size=60 config.sync_rate=-1 config.strategy=redis config.redis.host=redis-hostname config.redis.port=6379 kong-admin-token:super-admin
