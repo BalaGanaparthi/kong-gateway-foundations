@@ -1477,33 +1477,43 @@ http POST kongcluster:8001/consumers/Jane/key-auth key=JanePassword
 http GET kongcluster:8001/default/vitals/status_code_classes?interval=seconds | jq .meta
 ### curl -sX GET kongcluster:8001/default/vitals/status_code_classes?interval=seconds | jq .meta
 
+
 # 07 - Advanced Plugins review
+
+## Lab: Advanced Plugins
+
+cd
+source scram.sh
+
+cd
+git clone https://github.com/gigaprimatus/kong-gateway-operations.git
+source ~/kong-gateway-operations/installation/scram.sh
 
 ## Task: Create a service with a route
 
 http POST kongcluster:8001/services \
-    name=numberfun \
-    url=http://numbersapi.com/random/year
+    name=mockbin \
+    url=http://mockbin:8080/request
 
 ### curl -sX POST kongcluster:8001/services \
-      -d name=numberfun \
-      -d url=http://numbersapi.com/random/year \
+      -d name=mockbin \
+      -d url=http://mockbin:8080/request \
       | jq
 
-http -f POST kongcluster:8001/services/numberfun/routes \
-    name=numberfun_route \
-    paths=/randomyear
+http -f POST kongcluster:8001/services/mockbin/routes \
+    name=mockbin \
+    paths=/mockbin
 
-### curl -sX POST kongcluster:8001/services/numberfun/routes \
-      -d name=numberfun_route \
-      -d paths=/randomyear \
+### curl -sX POST kongcluster:8001/services/mockbin/routes \
+      -d name=mockbin \
+      -d paths=/mockbin \
       | jq
 
 ## Task: Enable key-auth, Create consumer and assign credentials
 
-http POST kongcluster:8001/consumers username=Joe
+http POST kongcluster:8001/consumers username=Jane
 ### curl -sX POST kongcluster:8001/consumers \
-         -d username=Joe \
+         -d username=Jane \
          | jq
 
 http POST kongcluster:8001/plugins name=key-auth
@@ -1511,9 +1521,9 @@ http POST kongcluster:8001/plugins name=key-auth
          -d name=key-auth \
          | jq
 
-http POST kongcluster:8001/consumers/Joe/key-auth key=JoePassword
-### curl -sX POST kongcluster:8001/consumers/Joe/key-auth \
-         -d key=JoePassword \
+http POST kongcluster:8001/consumers/Jane/key-auth key=JanePassword
+### curl -sX POST kongcluster:8001/consumers/Jane/key-auth \
+         -d key=JanePassword \
          | jq
 
 ## Task: Now Let's Create Some Traffic for User 'Joe'
@@ -1521,36 +1531,97 @@ http POST kongcluster:8001/consumers/Joe/key-auth key=JoePassword
 (for ((i=1;i<=20;i++))
    do
      sleep 1
-     http GET $KONG_PROXY_URI/randomyear?apikey=JoePassword
+     http GET $KONG_PROXY_URI/mockbin?apikey=JanePassword
    done)
 
 ### (for ((i=1;i<=20;i++))
        do
          sleep 1
-         curl -isX GET $KONG_PROXY_URI/randomyear?apikey=JoePassword
+         curl -isX GET $KONG_PROXY_URI/mockbin?apikey=JanePassword
        done)
 
-## Slide 18
-$ http --form POST kongcluster:8001/plugins name=rate-limiting-advanced config.limit=5 config.window_size=60 config.sync_rate=-1 config.strategy=redis config.redis.host=redis-hostname config.redis.port=6379 kong-admin-token:super-admin
-$ for ((i=1;i<=20;i++)); do sleep 1; http GET kongcluster:8000/randomyear?apikey=JoePassword; done
+## Task: Configure Rate Limiting Advanced Plugin
 
-## Slide 25
-$ http --form POST docker:8001/plugins name=request-transformer-advanced config.add.headers[1]=h1:v1 config.add.headers[2]=h2:v1
-$ http --form POST docker:8001/plugins name=request-transformer-advanced config.add.querystring[1]=q1:v1 config.add.querystring[2]=q2:v1 config.add.headers=h1:v1
+http --form POST kongcluster:8001/plugins \
+  name=rate-limiting-advanced \
+  config.limit=10 \
+  config.limit=20 \
+  config.window_size=60 \
+  config.window_size=90 \
+  config.window_type=sliding \
+  config.sync_rate=0 \
+  config.strategy=redis \
+  config.redis.host=redis \
+  config.redis.port=6379
 
-## Slide 26
-$ http --form POST docker:8001/plugins name=response-transformer-advanced config.remove.headers=h1,h2 config.add.headers=h3:v1
-$ http --form POST docker:8001/plugins name=response-transformer-advanced config.add.json=sample_key:sample_value config.add.headers=h1:v1
+### curl -sX POST kongcluster:8001/plugins \
+      -d name=rate-limiting-advanced \
+      -d config.limit=10 \
+      -d config.limit=20 \
+      -d config.window_size=60 \
+      -d config.window_size=90 \
+      -d config.window_type=sliding \
+      -d config.sync_rate=0 \
+      -d config.strategy=redis \
+      -d config.redis.host=redis \
+      -d config.redis.port=6379 \
+      | jq
 
-## Slide 30
-$ http --form POST kongcluster:8001/plugins name=response-transformer-advanced config.add.json=p1:v1 config.add.headers=X-Kong-Test-Header:Test-Value Kong-Admin-Token:super-admin
-$ http GET $KONG_PROXY_URI/randomyear?apikey=JoePassword
+## Task: Create Traffic with Advanced Rate Limiting Plugin Enabled
 
-## Slide 33
-$ http --form POST kongcluster:8001/plugins name=request-transformer-advanced config.add.headers=X-Kong-Test-Request-Header:MyHeader config.rename.headers=User-Agent:My-User-Agent Kong-Admin-Token:super-admin
+(for ((i=1;i<=20;i++))
+   do
+     sleep 1
+     http GET $KONG_PROXY_URI/mockbin?apikey=JanePassword
+   done)
 
-## Slide 35
-$ http -v GET $KONG_PROXY_URI/mock/request?apikey=JoePassword
+### (for ((i=1;i<=20;i++))
+       do
+         sleep 1
+         curl -isX GET $KONG_PROXY_URI/mockbin?apikey=JanePassword
+       done)
+
+## Task: Configure Request Transformer Advanced Plugin
+
+http --form POST kongcluster:8001/plugins \
+  name=request-transformer-advanced \
+  config.add.headers=X-Kong-Test-Request-Header:MyRequestHeader \
+  config.rename.headers=User-Agent:My-User-Agent
+
+### curl -sX POST kongcluster:8001/plugins \
+      -d name=request-transformer-advanced \
+      -d config.add.headers=X-Kong-Test-Request-Header:MyRequestHeader \
+      -d config.rename.headers=User-Agent:My-User-Agent \
+      | jq
+
+## Task: Create Request to See Request Headers
+
+http GET $KONG_PROXY_URI/mockbin/request?apikey=JanePassword
+### curl -sX GET $KONG_PROXY_URI/mockbin/request?apikey=JanePassword | jq
+
+## Task: Configure Response Transformer Advanced Plugin
+
+http --form POST kongcluster:8001/plugins \
+  name=response-transformer-advanced \
+  config.add.json=json-key-added:Test-Key \
+  config.add.headers=X-Kong-Test-Response-Header:MyResponseHeader
+
+### curl -sX POST kongcluster:8001/plugins \
+    -d name=response-transformer-advanced \
+    -d config.add.json=json-key-added:Test-Key \
+    -d config.add.headers=X-Kong-Test-Response-Header:MyResponseHeader \
+    | jq
+
+## Task: Create Request to See Response  Headers/Body
+
+http GET $KONG_PROXY_URI/mockbin?apikey=JanePassword
+### curl -isX $KONG_PROXY_URI/mockbin?apikey=JanePassword
+
+
+
+
+
+
 
 ## Slide 43
 $ http --form POST kongcluster:8001/plugins name=prometheus \
