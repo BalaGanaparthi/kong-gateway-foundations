@@ -8,7 +8,7 @@ networks:
 services:
 #^keycloak:
 #^  networks:
-#^    - kong-edu-net
+#^  - kong-edu-net
 #^  image: jboss/keycloak:16.1.1
 #^  container_name: keycloak
 #^  hostname: keycloak
@@ -17,31 +17,28 @@ services:
 #^      condition: service_healthy
 #^  command: -Dkeycloak.profile.feature.upload_scripts=enabled
 #^  volumes:
-#^    - /data:/data
+#^  - /data:/data
+#^  healthcheck:
+#^    test: ["CMD", "curl", "-f", "$KEYCLOAK_URI/auth/realms/master"]
+#^    interval: 30s
+#^    timeout: 30s
+#^    retries: 3
+#^  restart: on-failure
+#^  ports:
+#^  - 8080:8080
 #^  environment:
 #^    DB_VENDOR: H2
 #^    KEYCLOAK_USER: admin
 #^    KEYCLOAK_PASSWORD: admin
 #^    KEYCLOAK_IMPORT: "/data/kong_realm_template.json"
 #^    PROXY_ADDRESS_FORWARDING: "true"
-#^  healthcheck:
-#^    test: ["CMD", "curl", "-f", "$KEYCLOAK_URI/auth/realms/master"]
-#^    interval: 15s
-#^    timeout: 5s
-#^    retries: 25
-#^  ports:
-#^    - 8080:8080
 
   postgres:
     networks:
-      - kong-edu-net
+    - kong-edu-net
     image: postgres:13.1
     container_name: postgres
     hostname: postgres
-    environment:
-      POSTGRES_DB: kong
-      POSTGRES_PASSWORD: kong
-      POSTGRES_USER: kong
     healthcheck:
       test: ["CMD", "pg_isready", "-U", "kong"]
       interval: 30s
@@ -50,10 +47,14 @@ services:
     restart: on-failure
     stdin_open: true
     tty: true
+    environment:
+      POSTGRES_DB: kong
+      POSTGRES_PASSWORD: kong
+      POSTGRES_USER: kong
 
   kong-migrations:
     networks:
-      - kong-edu-net
+    - kong-edu-net
     image: kong/kong-gateway:2.8-alpine
     container_name: kong-migrations
     hostname: kong-migrations
@@ -61,6 +62,7 @@ services:
       postgres:
         condition: service_healthy
     command: kong migrations bootstrap
+    restart: on-failure
     environment:
       KONG_DATABASE: postgres
       KONG_PG_HOST: postgres
@@ -69,11 +71,10 @@ services:
       KONG_PG_PASSWORD: kong
       KONG_PASSWORD: password
       #KONG_LICENSE_DATA: ${KONG_LICENSE_DATA}
-    restart: on-failure
-
+ 
   kong-cp:
     networks:
-      - kong-edu-net
+    - kong-edu-net
     image: kong/kong-gateway:2.8-alpine
     container_name: kong-cp
     hostname: kong-cp
@@ -82,8 +83,18 @@ services:
       postgres:
         condition: service_healthy
     volumes:
-      - /srv/shared/logs:/srv/shared/logs
-      - /srv/shared/ssl-certs:/srv/shared/ssl
+    - /srv/shared/logs:/srv/shared/logs
+    - /srv/shared/ssl-certs:/srv/shared/ssl
+    healthcheck:
+      test: ["CMD", "kong", "health"]
+      interval: 30s
+      timeout: 30s
+      retries: 3
+    restart: on-failure
+    ports:
+    - "8001-8006:8001-8006/tcp"
+    - "8100:8100/tcp"
+    - "8444-8447:8444-8447/tcp"
     environment:
       KONG_ROLE: control_plane
       KONG_CLUSTER_CERT: /srv/shared/ssl/hybrid/cluster.crt
@@ -153,20 +164,10 @@ services:
       #KONG_SMTP_DOMAIN: ${KONG_SMTP_DOMAIN}
       KONG_NGINX_WORKER_PROCESSES: 1
       KONG_LUA_SSL_TRUSTED_CERTIFICATE: "system"
-    healthcheck:
-      test: ["CMD", "kong", "health"]
-      interval: 10s
-      timeout: 10s
-      retries: 10
-    restart: on-failure
-    ports:
-      - "8001-8006:8001-8006/tcp"
-      - "8100:8100/tcp"
-      - "8444-8447:8444-8447/tcp"
-
+ 
   kong-dp:
     networks:
-      - kong-edu-net
+    - kong-edu-net
     image: kong/kong-gateway:2.8-alpine
     container_name: kong-dp
     hostname: kong-dp
@@ -174,8 +175,18 @@ services:
       kong-cp:
         condition: service_healthy
     volumes:
-      - /srv/shared/ssl-certs:/srv/shared/ssl
-      - /srv/shared/logs:/srv/shared/logs
+    - /srv/shared/ssl-certs:/srv/shared/ssl
+    - /srv/shared/logs:/srv/shared/logs
+    healthcheck:
+      test: ["CMD", "kong", "health"]
+      interval: 30s
+      timeout: 30s
+      retries: 3
+    restart: on-failure
+    ports:
+    - "8000:8000/tcp"
+    - "8443:8443/tcp"
+    - "8101:8101/tcp"
     environment:
       KONG_ROLE: "data_plane"
       KONG_CLUSTER_CERT: "/srv/shared/ssl/hybrid/cluster.crt"
@@ -203,20 +214,10 @@ services:
       KONG_TRACING_TIME_THRESHOLD: 0
       KONG_TRACING_WRITE_ENDPOINT: /srv/shared/logs/granular_tracing.log
       KONG_TRACING_DEBUG_HEADER: X-Trace
-    healthcheck:
-      test: ["CMD", "kong", "health"]
-      interval: 10s
-      timeout: 10s
-      retries: 10
-    restart: on-failure
-    ports:
-      - "8000:8000/tcp"
-      - "8443:8443/tcp"
-      - "8101:8101/tcp"
-
+  
   smtp-server:
     networks:
-      - kong-edu-net
+    - kong-edu-net
     image: reachfive/fake-smtp-server
     container_name: smtp-server
     hostname: smtp-server
@@ -225,9 +226,10 @@ services:
         condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "exit 0"]
-      interval: 15s
-      timeout: 15s
-      retries: 25        
+      interval: 16s
+      timeout: 16s
+      retries: 16        
+    restart: on-failure
     ports:
    #- "25:1025/tcp"
     - "1080:1080/tcp"
@@ -240,9 +242,10 @@ services:
     hostname: mockbin
     healthcheck:
       test: ["CMD-SHELL", "exit 0"]
-      interval: 15s
-      timeout: 15s
-      retries: 25        
+      interval: 30s
+      timeout: 30s
+      retries: 3        
+    restart: on-failure
     ports:
     - "8888:8080/tcp"
 
@@ -254,8 +257,9 @@ services:
     hostname: redis
     healthcheck:
       test: [ "CMD", "redis-cli", "--raw", "incr", "ping" ]
-      interval: 15s
-      timeout: 15s
-      retries: 25        
+      interval: 30s
+      timeout: 30s
+      retries: 3        
+    restart: on-failure
     ports:
     - "6379:6379/tcp"
