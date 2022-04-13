@@ -11,10 +11,6 @@ services:
 #^  - kong-edu-net
 #^  image: jboss/keycloak:16.1.1
 #^  container_name: keycloak
-#^  hostname: keycloak
-#^  depends_on:
-#^    kong-dp:
-#^      condition: service_healthy
 #^  command: -Dkeycloak.profile.feature.upload_scripts=enabled
 #^  volumes:
 #^  - /data:/data
@@ -59,8 +55,7 @@ services:
     container_name: kong-migrations
     hostname: kong-migrations
     depends_on:
-      postgres:
-        condition: service_healthy
+    - postgres        
     command: kong migrations bootstrap
     restart: on-failure
     environment:
@@ -70,8 +65,27 @@ services:
       KONG_PG_USER: kong
       KONG_PG_PASSWORD: kong
       KONG_PASSWORD: password
-      #KONG_LICENSE_DATA: ${KONG_LICENSE_DATA}
+     #KONG_LICENSE_DATA: ${KONG_LICENSE_DATA}
  
+  kong-migrations-up:
+    networks:
+    - kong-edu-net
+    image: kong/kong-gateway:2.8-alpine
+    container_name: kong-migrations
+    hostname: kong-migrations
+    depends_on:
+    - kong-migrations
+    command: kong migrations up && kong-migrations finish
+    restart: on-failure
+    environment:
+      KONG_DATABASE: postgres
+      KONG_PG_HOST: postgres
+      KONG_PG_DATABASE: kong
+      KONG_PG_USER: kong
+      KONG_PG_PASSWORD: kong
+      KONG_PASSWORD: password
+     #KONG_LICENSE_DATA: ${KONG_LICENSE_DATA}
+
   kong-cp:
     networks:
     - kong-edu-net
@@ -80,8 +94,7 @@ services:
     hostname: kong-cp
     user: kong
     depends_on:
-      postgres:
-        condition: service_healthy
+    - kong-migrations-up
     volumes:
     - /srv/shared/logs:/srv/shared/logs
     - /srv/shared/ssl-certs:/srv/shared/ssl
@@ -127,25 +140,25 @@ services:
       KONG_STATUS_SSL_CERT: "/srv/shared/ssl/wildcard.pem"
       KONG_ANONYMOUS_REPORTS: "off"
       KONG_VITALS: "on"
-      #KONG_LICENSE_DATA: ${KONG_LICENSE_DATA}
-      #KONG_ENFORCE_RBAC: "on"
-      #KONG_ADMIN_API_URI: "https://api.kong.lan:8444"
+     #KONG_LICENSE_DATA: ${KONG_LICENSE_DATA}
+     #KONG_ENFORCE_RBAC: "on"
+     #KONG_ADMIN_API_URI: "https://api.kong.lan:8444"
       KONG_ADMIN_API_URI: ${KONG_ADMIN_API_URI}
       KONG_ADMIN_SSL_CERT_KEY: "/srv/shared/ssl/wildcard.key"
       KONG_ADMIN_SSL_CERT: "/srv/shared/ssl/wildcard.pem"
-      #KONG_ADMIN_GUI_URL: "https://manager.kong.lan:8445"
+     #KONG_ADMIN_GUI_URL: "https://manager.kong.lan:8445"
       KONG_ADMIN_GUI_URL: ${KONG_MANAGER_URI}
       KONG_ADMIN_GUI_SSL_CERT_KEY: "/srv/shared/ssl/wildcard.key"
       KONG_ADMIN_GUI_SSL_CERT: "/srv/shared/ssl/wildcard.pem"
-      #KONG_ADMIN_GUI_AUTH: "basic-auth"
-      #KONG_ADMIN_GUI_SESSION_CONF: "{ \"cookie_name\": \"manager-session\", \"secret\": \"this_is_my_other_secret\", \"storage\": \"kong\", \"cookie_secure\":true, \"cookie_lifetime\":36000}"
+     #KONG_ADMIN_GUI_AUTH: "basic-auth"
+     #KONG_ADMIN_GUI_SESSION_CONF: "{ \"cookie_name\": \"manager-session\", \"secret\": \"this_is_my_other_secret\", \"storage\": \"kong\", \"cookie_secure\":true, \"cookie_lifetime\":36000}"
       KONG_PORTAL: "on"
       KONG_PORTAL_GUI_PROTOCOL: "https"
-      #KONG_PORTAL_GUI_HOST: "portal.kong.lan:8446"
+     #KONG_PORTAL_GUI_HOST: "portal.kong.lan:8446"
       KONG_PORTAL_GUI_HOST: ${KONG_PORTAL_GUI_HOST}
       KONG_PORTAL_GUI_SSL_CERT_KEY: "/srv/shared/ssl/wildcard.key"
       KONG_PORTAL_GUI_SSL_CERT: "/srv/shared/ssl/wildcard.pem"
-      #KONG_PORTAL_API_URL: "https://portal-api.kong.lan:8447"
+     #KONG_PORTAL_API_URL: "https://portal-api.kong.lan:8447"
       KONG_PORTAL_API_URL: ${KONG_PORTAL_API_URI}
       KONG_PORTAL_API_SSL_CERT_KEY: "/srv/shared/ssl/wildcard.key"
       KONG_PORTAL_API_SSL_CERT: "/srv/shared/ssl/wildcard.pem"
@@ -161,7 +174,7 @@ services:
       KONG_SMTP_HOST: "smtp-server"
       KONG_SMTP_PORT: 1025
       KONG_SMTP_DOMAIN: "api.kong.lan"
-      #KONG_SMTP_DOMAIN: ${KONG_SMTP_DOMAIN}
+     #KONG_SMTP_DOMAIN: ${KONG_SMTP_DOMAIN}
       KONG_NGINX_WORKER_PROCESSES: 1
       KONG_LUA_SSL_TRUSTED_CERTIFICATE: "system"
  
@@ -172,8 +185,7 @@ services:
     container_name: kong-dp
     hostname: kong-dp
     depends_on:
-      kong-cp:
-        condition: service_healthy
+    - kong-cp
     volumes:
     - /srv/shared/ssl-certs:/srv/shared/ssl
     - /srv/shared/logs:/srv/shared/logs
@@ -202,7 +214,7 @@ services:
       KONG_PROXY_STREAM_ACCESS_LOG: /srv/shared/logs/proxystream_access.log basic
       KONG_PROXY_STREAM_ERROR_LOG: /srv/shared/logs/proxystream_error.log
       KONG_DATABASE: "off"
-      #KONG_LICENSE_DATA: ${KONG_LICENSE_DATA}
+     #KONG_LICENSE_DATA: ${KONG_LICENSE_DATA}
       KONG_ANONYMOUS_REPORTS: "off"
       KONG_VITALS: "on"
       KONG_SSL_CERT_KEY: "/srv/shared/ssl/wildcard.key"
@@ -221,9 +233,6 @@ services:
     image: reachfive/fake-smtp-server
     container_name: smtp-server
     hostname: smtp-server
-    depends_on:
-      kong-cp:
-        condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "exit 0"]
       interval: 16s
