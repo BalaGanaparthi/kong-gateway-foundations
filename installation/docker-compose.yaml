@@ -53,7 +53,6 @@ services:
     - kong-edu-net
     image: kong/kong-gateway:2.8-alpine
     container_name: kong-migrations
-    hostname: kong-migrations
     depends_on:
     - postgres        
     command: kong migrations bootstrap
@@ -71,8 +70,7 @@ services:
     networks:
     - kong-edu-net
     image: kong/kong-gateway:2.8-alpine
-    container_name: kong-migrations
-    hostname: kong-migrations
+    container_name: kong-migrations-up
     depends_on:
     - kong-migrations
     command: kong migrations up && kong-migrations finish
