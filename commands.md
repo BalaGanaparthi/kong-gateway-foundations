@@ -200,9 +200,9 @@ http POST kongcluster:8001/services \
        -d "url=https://mockbin/request" \
        | jq
 
-http POST kongcluster:8001/services/mockbin/routes \
+http -f POST kongcluster:8001/services/mockbin/routes \
   name=mockbin \
-  paths:='["/mockbin"]'
+  paths=/mockbin
 
 ### curl -sX POST kongcluster:8001/services/mockbin/routes \
       -d "name=mockbin" \
