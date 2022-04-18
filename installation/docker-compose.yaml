@@ -277,7 +277,7 @@ services:
     image: prom/prometheus:v2.34.0
     container_name: prometheus
     hostname: prometheus
-    command: --config.file=/etc/prometheus/prometheus.yml --log.level=debug
+    command: --config.file=/etc/prometheus/prometheus.yaml --log.level=debug
     healthcheck:
       test: ["CMD", "wget", "-S", "--spider", "http://prometheus:9090"]
       interval: 10s
@@ -286,7 +286,7 @@ services:
     ports:
     - 9090:9090
     volumes:
-    - /srv/shared/misc/prometheus.yml:/etc/prometheus/prometheus.yml
+    - /srv/shared/misc/prometheus.yaml:/etc/prometheus/prometheus.yaml
 
   statsd:
     networks:
