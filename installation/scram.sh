@@ -9,12 +9,12 @@ mkdir -p ~/.docker
 curl -so ~/.docker/ca.pem http://docker:9000/ca.pem
 curl -so ~/.docker/cert.pem http://docker:9000/cert.pem
 curl -so ~/.docker/key.pem http://docker:9000/key.pem
-cp misc/docker-config.json ~/.docker/config.json
 cd ~/
 if [ -d "kong-gateway-operations" ]; then rm -Rf "kong-gateway-operations"; fi
 printf "\n${red}Cloning Kong Gateway Operations Repo under user home directory.${normal}\n"
 git clone https://github.com/gigaprimatus/kong-gateway-operations.git
 cd kong-gateway-operations/installation
+cp misc/docker-config.json ~/.docker/config.json
 printf "\n${red}Copying SSL certificates to shared location.${normal}"
 cp -R ssl-certs /srv/shared
 printf "\n${red}Copying miscellaneous configuration to shared location.${normal}"
