@@ -9,6 +9,7 @@ mkdir -p ~/.docker
 curl -so ~/.docker/ca.pem http://docker:9000/ca.pem
 curl -so ~/.docker/cert.pem http://docker:9000/cert.pem
 curl -so ~/.docker/key.pem http://docker:9000/key.pem
+cp misc/docker-config.json ~/.docker/config.json
 cd ~/
 if [ -d "kong-gateway-operations" ]; then rm -Rf "kong-gateway-operations"; fi
 printf "\n${red}Cloning Kong Gateway Operations Repo under user home directory.${normal}\n"

@@ -1,6 +1,7 @@
 # 01 - Kong Gateway Installation
 
 ## Task: Obtain Kong docker compose file and certificates
+cd
 ./setup-docker.sh
 git clone https://github.com/gigaprimatus/kong-gateway-operations.git
 cd kong-gateway-operations/installation
