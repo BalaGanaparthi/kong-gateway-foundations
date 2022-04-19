@@ -91,23 +91,24 @@ http --form POST kongcluster:8001/files \
 cd ~/kong-gateway-operations/installation
 sed -i "s|KONG_ADMIN_API_URI|$KONG_ADMIN_API_URI|g" deck/deck.yaml
 cp deck/deck.yaml ~/.deck.yaml
+deck ping
 
 http POST kongcluster:8001/services \
   name=mockbin \
   url=http://mockbin:8080/request
 
 ### curl -sX POST kongcluster:8001/services \
-       -d "name=mockbin" \
-       -d "url=https://mockbin/request" \
-       | jq
+      -d name=mockbin \
+      -d url=http://mockbin:8080/request \
+      | jq
 
-http POST kongcluster:8001/services/mockbin/routes \
+http -f POST kongcluster:8001/services/mockbin/routes \
   name=mockbin \
-  paths:='["/mockbin"]'
+  paths=/mockbin
 
 ### curl -sX POST kongcluster:8001/services/mockbin/routes \
-      -d "name=mockbin" \
-      -d "paths=/mockbin" \
+      -d name=mockbin \
+      -d paths=/mockbin \
       | jq
 
 
@@ -197,8 +198,8 @@ http POST kongcluster:8001/services \
   url=http://mockbin:8080/request
 
 ### curl -sX POST kongcluster:8001/services \
-       -d "name=mockbin" \
-       -d "url=https://mockbin/request" \
+       -d name=mockbin \
+       -d url=https://mockbin/request \
        | jq
 
 http -f POST kongcluster:8001/services/mockbin/routes \
@@ -206,8 +207,8 @@ http -f POST kongcluster:8001/services/mockbin/routes \
   paths=/mockbin
 
 ### curl -sX POST kongcluster:8001/services/mockbin/routes \
-      -d "name=mockbin" \
-      -d "paths=/mockbin" \
+      -d name=mockbin \
+      -d paths=/mockbin \
       | jq
 
 ## Task: Run the 2.6 migrations
@@ -281,17 +282,17 @@ http POST kongcluster:8001/services \
   url=http://mockbin:8080/request
 
 ### curl -sX POST kongcluster:8001/services \
-       -d "name=mockbin" \
-       -d "url=https://mockbin/request" \
+       -d name=mockbin \
+       -d url=https://mockbin/request \
        | jq
 
-http POST kongcluster:8001/services/mockbin/routes \
+http -f POST kongcluster:8001/services/mockbin/routes \
   name=mockbin \
-  paths:='["/mockbin"]'
+  paths=/mockbin
 
 ### curl -sX POST kongcluster:8001/services/mockbin/routes \
-      -d "name=mockbin" \
-      -d "paths=/mockbin" \
+      -d name=mockbin \
+      -d paths=/mockbin \
       | jq
 
 
@@ -525,46 +526,46 @@ http GET kongcluster:8001/WorkspaceB/rbac/users Kong-Admin-Token:AdminA_token
       -H Kong-Admin-Token:AdminA_token \
       | jq
 
+
 ## Task: Deploy a service to WorkspaceA with correct Admin
+
 http POST kongcluster:8001/WorkspaceA/services \
   name=mockbin_service \
-  url='http://mockbin:8080' \
+  url=http://mockbin:8080 \
+  Kong-Admin-Token:AdminB_token
+
+### curl -sX POST kongcluster:8001/WorkspaceA/services \
+  -d name=mockbin_service \
+  -d url=http://mockbin:8080 \
+  -H Kong-Admin-Token:AdminB_token \
+  | jq
+
+http POST kongcluster:8001/WorkspaceA/services \
+  name=mockbin_service \
+  url=http://mockbin:8080 \
   Kong-Admin-Token:AdminA_token
 
 ### curl -sX POST kongcluster:8001/WorkspaceA/services \
   -d name=mockbin_service \
-  -d url='http://mockbin:8080' \
+  -d url=http://mockbin:8080 \
   -H Kong-Admin-Token:AdminA_token \
   | jq
 
-http POST kongcluster:8001/WorkspaceA/services/mockbin_service/routes \
+http -f POST kongcluster:8001/WorkspaceA/services/mockbin_service/routes \
   name=mocking \
-  hosts:='["myhost.me"]' \
-  paths:='["/mocker"]' \
+  hosts=myhost.me \
+  paths=/mocker \
   Kong-Admin-Token:AdminA_token
 
 ### curl -sX POST kongcluster:8001/WorkspaceA/services/mockbin_service/routes \
       -d name=mocking \
-      -d hosts="myhost.me" \
-      -d paths="/mocker" \
-      -H Kong-Admin-Token:AdminA_token \
-      | jq
-
-
-http POST kongcluster:8001/WorkspaceA/services/mockbin_service/routes \
-  name=mocking \
-  hosts:='["myhost.me"]' \
-  paths:='["/mocker"]' \
-  Kong-Admin-Token:AdminA_token
-
-### curl -sX POST kongcluster:8001/WorkspaceA/services/mockbin_service/routes \
-      -d name=mocking \
-      -d hosts="myhost.me" \
-      -d paths="/mocker" \
+      -d hosts=myhost.me \
+      -d paths=/mocker \
       -H Kong-Admin-Token:AdminA_token \
       | jq
 
 ## Task: Verify service in WorkspaceA
+
 http --header GET kongcluster:8000/mocker host:myhost.me | grep HTTP
 ### curl -sIX GET kongcluster:8000/mocker -H host:myhost.me | grep HTTP
 
@@ -744,9 +745,11 @@ http GET kongcluster:8000/admin-api/services apikey:secret
       | jq
 
 
+
 # 03 - Securing Services on Kong
 
 ## Lab: Securing Services on Kong
+
 cd
 source scram.sh
 
@@ -758,21 +761,22 @@ source ~/kong-gateway-operations/installation/scram.sh
 
 http POST kongcluster:8001/services \
   name=mockbin_service \
-  url='http://mockbin:8080'
+  url=http://mockbin:8080/request
 
 ### curl -sX POST kongcluster:8001/services \
       -d name=mockbin_service \
-      -d url='http://mockbin:8080' \
+      -d url=http://mockbin:8080/request \
       | jq 
 
 http -f POST kongcluster:8001/services/mockbin_service/routes \
   name=mocking \
-  paths='/mock'
+  paths=/mock
 
-curl -sX POST kongcluster:8001/services/mockbin_service/routes \
-  -d name=mocking \
-  -d paths='/mock' \
-  | jq
+### curl -sX POST kongcluster:8001/services/mockbin_service/routes \
+      -d name=mocking \
+      -d paths=/mock \
+      | jq
+
 
 ## Task: Configure Rate Limiting and key-auth Plugins
 
@@ -814,7 +818,7 @@ http POST kongcluster:8001/consumers/Jane/key-auth key=JanePassword
         curl -isX GET kongcluster:8000/mock/request?apikey=JanePassword
       done)
 
-## Task: Create mocking service and route
+## Task: Create mockbin service and route
 http DELETE kongcluster:8001/services/mockbin_service/routes/mocking
 ### curl -X DELETE kongcluster:8001/services/mockbin_service/routes/mocking
 http DELETE kongcluster:8001/services/mockbin_service
@@ -822,20 +826,20 @@ http DELETE kongcluster:8001/services/mockbin_service
 
 http POST kongcluster:8001/services \
   name=mockbin_service \
-  url='http://mockbin:8080'
+  url=http://mockbin:8080/request
 
 ### curl -sX POST kongcluster:8001/services \
     -d name=mockbin_service \
-    -d url='http://mockbin:8080' \
+    -d url=http://mockbin:8080/request \
     | jq
 
 http -f POST kongcluster:8001/services/mockbin_service/routes \
     name=mocking \
-    paths='/mock'
+    paths=/mock
 
 ### curl -sX POST kongcluster:8001/services/mockbin_service/routes \
       -d name=mocking \
-      -d paths='/mock' \
+      -d paths=/mock \
       | jq
 
 ## Task: Enable JWT Plugin for a Service
@@ -866,10 +870,10 @@ TOKEN=$(jwt -e -s $SECRET --jwt '{"iss":'"$KEY"'}')
 echo $TOKEN
 
 ## Task: Consume the service with JWT credentials
-http --headers GET kongcluster:8000/mock/request
-### curl -IX GET kongcluster:8000/mock/request
-http --headers GET kongcluster:8000/mock/request Authorization:"Bearer $TOKEN"
-### curl -isX GET kongcluster:8000/mock/request -H Authorization:"Bearer $TOKEN"
+http --headers GET kongcluster:8000/mock
+### curl -IX GET kongcluster:8000/mock
+http --headers GET kongcluster:8000/mock Authorization:"Bearer $TOKEN"
+### curl -isX GET kongcluster:8000/mock -H Authorization:"Bearer $TOKEN"
 
 ## Task: Create a self-signed certificate 
 cd ~/kong-gateway-operations/securing-services
@@ -1419,8 +1423,8 @@ http POST kongcluster:8001/services \
   url=http://mockbin:8080/request
 
 ### curl -sX POST kongcluster:8001/services \
-       -d "name=mockbin" \
-       -d "url=http://mockbin:8080/request" \
+       -d name=mockbin \
+       -d url=http://mockbin:8080/request \
        | jq
 
 http -f POST kongcluster:8001/services/mockbin/routes \
@@ -1428,8 +1432,8 @@ http -f POST kongcluster:8001/services/mockbin/routes \
   paths=/mockbin
 
 ### curl -sX POST kongcluster:8001/services/mockbin/routes \
-      -d "name=mockbin" \
-      -d "paths=/mockbin" \
+      -d name=mockbin \
+      -d paths=/mockbin \
       | jq
       
 http -f POST kongcluster:8001/services/mockbin/plugins \
@@ -1473,7 +1477,7 @@ http POST kongcluster:8001/consumers/Jane/key-auth key=JanePassword
          curl -IsX GET $KONG_PROXY_URI/mockbin/request?apikey=JanePassword
        done)
 
-## Task: View Metrics
+## Task: Get Metrics from Vitals API
 
 http GET kongcluster:8001/default/vitals/status_code_classes?interval=seconds | jq .meta
 ### curl -sX GET kongcluster:8001/default/vitals/status_code_classes?interval=seconds | jq .meta
