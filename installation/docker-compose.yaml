@@ -115,7 +115,7 @@ services:
       KONG_ADMIN_GUI_LISTEN: "0.0.0.0:8002, 0.0.0.0:8445 http2 ssl"
       KONG_PORTAL_GUI_LISTEN: "0.0.0.0:8003, 0.0.0.0:8446 http2 ssl"
       KONG_PORTAL_API_LISTEN: "0.0.0.0:8004, 0.0.0.0:8447 http2 ssl"
-      KONG_STATUS_LISTEN: "0.0.0.0:8100 ssl"
+      KONG_STATUS_LISTEN: "0.0.0.0:8100"
       KONG_CLUSTER_LISTEN: "0.0.0.0:8005"
       KONG_CLUSTER_TELEMETRY_LISTEN: "0.0.0.0:8006"
       KONG_DATABASE: postgres
@@ -138,6 +138,9 @@ services:
       KONG_STATUS_SSL_CERT: "/srv/shared/ssl/wildcard.pem"
       KONG_ANONYMOUS_REPORTS: "off"
       KONG_VITALS: "on"
+      KONG_VITALS_STRATEGY: prometheus
+      KONG_VITALS_STATSD_ADDRESS: statsd:9125
+      KONG_VITALS_TSDB_ADDRESS: prometheus:9090
      #KONG_LICENSE_DATA: ${KONG_LICENSE_DATA}
      #KONG_ENFORCE_RBAC: "on"
      #KONG_ADMIN_API_URI: "https://api.kong.lan:8444"
@@ -215,6 +218,9 @@ services:
      #KONG_LICENSE_DATA: ${KONG_LICENSE_DATA}
       KONG_ANONYMOUS_REPORTS: "off"
       KONG_VITALS: "on"
+      KONG_VITALS_STRATEGY: prometheus
+      KONG_VITALS_STATSD_ADDRESS: statsd:9125
+      KONG_VITALS_TSDB_ADDRESS: prometheus:9090
       KONG_SSL_CERT_KEY: "/srv/shared/ssl/wildcard.key"
       KONG_SSL_CERT: "/srv/shared/ssl/wildcard.pem"
       KONG_NGINX_WORKER_PROCESSES: 1

@@ -36,4 +36,4 @@ scrape_configs:
   - job_name: 'kong_prom_plugin'
     scrape_interval: "5s"
     static_configs:
-      - targets: ['kong-ee:8100']
+      - targets: ['kong-cp:8100', 'kong-dp:8101']
