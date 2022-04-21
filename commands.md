@@ -1416,6 +1416,13 @@ http DELETE kongcluster:8001/plugins/$TRNS_PLUGIN_ID
 
 # 06 - Kong Vitals
 
+## Lab: Kong Vitals
+cd
+source scram.sh
+cd
+git clone https://github.com/gigaprimatus/kong-gateway-operations.git
+source ~/kong-gateway-operations/installation/scram.sh
+
 ## Task: Configure Service/Route/Consumer/Plugins
 
 http POST kongcluster:8001/services \
@@ -1465,22 +1472,63 @@ http POST kongcluster:8001/consumers/Jane/key-auth key=JanePassword
 
 ## Task: Let's Create Some Traffic 
 
-(for ((i=1;i<=20;i++))
+(for ((i=0;i<64;i++))
    do
      sleep 1
      http -h GET $KONG_PROXY_URI/mockbin/request?apikey=JanePassword
    done)
 
-### (for ((i=1;i<=20;i++))
+### (for ((i=0;i<64;i++))
        do
          sleep 1
          curl -IsX GET $KONG_PROXY_URI/mockbin/request?apikey=JanePassword
        done)
 
+
 ## Task: Get Metrics from Vitals API
 
 http GET kongcluster:8001/default/vitals/status_code_classes?interval=seconds | jq .meta
 ### curl -sX GET kongcluster:8001/default/vitals/status_code_classes?interval=seconds | jq .meta
+
+
+## Task: Inspect Kong Vitals Configuration
+
+cat docker-compose.yaml | grep KONG_VITALS
+
+
+## Task: Inspect Prometheus/StatsD Configuration
+
+cat /srv/shared/misc/prometheus.yaml
+cat /srv/shared/misc/statsd.rules.yaml
+
+
+## Task: Configure Grafana
+
+env | grep GRAFANA_URI
+
+
+## Task: Let's Create Some Traffic 
+
+(for ((i=0;i<256;i++))
+   do
+     sleep 1
+     http -h GET $KONG_PROXY_URI/mockbin/request?apikey=JanePassword
+   done)
+
+### (for ((i=0;i<256;i++))
+       do
+         sleep 1
+         curl -IsX GET $KONG_PROXY_URI/mockbin/request?apikey=JanePassword
+       done)
+
+## Task: Get Metrics from Prometheus
+env | grep PROMETHEUS_URI
+
+
+
+
+
+
 
 
 # 07 - Advanced Plugins review
