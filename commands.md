@@ -1487,19 +1487,24 @@ http POST kongcluster:8001/consumers/Jane/key-auth key=JanePassword
 
 ## Task: Get Metrics from Vitals API
 
-http GET kongcluster:8001/default/vitals/status_code_classes?interval=seconds | jq .meta
-### curl -sX GET kongcluster:8001/default/vitals/status_code_classes?interval=seconds | jq .meta
+http GET kongcluster:8001/default/vitals/status_code_classes?interval=minutes | jq .stats.cluster
+### curl -sX GET kongcluster:8001/default/vitals/status_code_classes?interval=minutes | jq .stats.cluster
 
 
 ## Task: Inspect Kong Vitals Configuration
 
-cat docker-compose.yaml | grep KONG_VITALS
+cat docker-compose.yaml | grep KONG_VITALS | sort | uniq
 
 
 ## Task: Inspect Prometheus/StatsD Configuration
 
 cat /srv/shared/misc/prometheus.yaml
 cat /srv/shared/misc/statsd.rules.yaml
+
+
+## Task: Get to GUI for Prometheus
+
+env | grep PROMETHEUS_URI
 
 
 ## Task: Configure Grafana
@@ -1521,14 +1526,6 @@ env | grep GRAFANA_URI
          curl -IsX GET $KONG_PROXY_URI/mockbin/request?apikey=JanePassword
        done)
 
-## Task: Get Metrics from Prometheus
-env | grep PROMETHEUS_URI
-
-
-
-
-
-
 
 
 # 07 - Advanced Plugins review
@@ -1541,6 +1538,77 @@ source scram.sh
 cd
 git clone https://github.com/gigaprimatus/kong-gateway-operations.git
 source ~/kong-gateway-operations/installation/scram.sh
+
+
+## Task: Configure Service/Route/Plugin/Consumer
+
+http POST kongcluster:8001/services \
+  name=mockbin \
+  url=http://mockbin:8080/request
+
+### curl -sX POST kongcluster:8001/services \
+       -d name=mockbin \
+       -d url=http://mockbin:8080/request \
+       | jq
+
+http -f POST kongcluster:8001/services/mockbin/routes \
+  name=mockbin \
+  paths=/mockbin
+
+### curl -sX POST kongcluster:8001/services/mockbin/routes \
+      -d name=mockbin \
+      -d paths=/mockbin \
+      | jq
+      
+http POST kongcluster:8001/services/mockbin/plugins name=key-auth
+### curl -sX POST kongcluster:8001/services/mockbin/plugins \
+      -d name=key-auth \
+      | jq
+
+http POST kongcluster:8001/consumers username=Jane
+### curl -sX POST kongcluster:8001/consumers \
+      -d username=Jane \
+      | jq
+
+http POST kongcluster:8001/consumers/Jane/key-auth key=JanePassword
+### curl -sX POST kongcluster:8001/consumers/Jane/key-auth \
+      -d key=JanePassword \
+      | jq
+
+
+## Task: Enable the Prometheus Plugin & Generate Traffic
+
+http -form POST kongcluster:8001/plugins name=prometheus
+### curl -sX POST kongcluster:8001/plugins \
+      -d name=prometheus \
+      | jq
+
+(for ((i=0;i<64;i++))
+   do
+     sleep 1
+     http -h GET $KONG_PROXY_URI/mockbin?apikey=JanePassword
+     sleep 1
+     http -h GET $KONG_PROXY_URI/mockbin
+   done)
+
+### (for ((i=0;i<64;i++))
+       do
+         sleep 1
+         curl -IsX GET $KONG_PROXY_URI/mockbin?apikey=JanePassword
+         sleep 1
+         curl -IsX GET $KONG_PROXY_URI/mockbin
+       done)
+
+
+
+
+
+
+
+
+
+
+
 
 ## Task: Create a service with a route
 
@@ -1564,14 +1632,14 @@ http -f POST kongcluster:8001/services/mockbin/routes \
 
 ## Task: Enable key-auth, Create consumer and assign credentials
 
-http POST kongcluster:8001/consumers username=Jane
-### curl -sX POST kongcluster:8001/consumers \
-         -d username=Jane \
-         | jq
-
 http POST kongcluster:8001/plugins name=key-auth
 ### curl -sX POST kongcluster:8001/plugins \
          -d name=key-auth \
+         | jq
+
+http POST kongcluster:8001/consumers username=Jane
+### curl -sX POST kongcluster:8001/consumers \
+         -d username=Jane \
          | jq
 
 http POST kongcluster:8001/consumers/Jane/key-auth key=JanePassword
@@ -1579,19 +1647,6 @@ http POST kongcluster:8001/consumers/Jane/key-auth key=JanePassword
          -d key=JanePassword \
          | jq
 
-## Task: Now Let's Create Some Traffic for User 'Joe'
-
-(for ((i=1;i<=20;i++))
-   do
-     sleep 1
-     http GET $KONG_PROXY_URI/mockbin?apikey=JanePassword
-   done)
-
-### (for ((i=1;i<=20;i++))
-       do
-         sleep 1
-         curl -isX GET $KONG_PROXY_URI/mockbin?apikey=JanePassword
-       done)
 
 ## Task: Configure Rate Limiting Advanced Plugin
 
