@@ -1583,7 +1583,7 @@ http -form POST kongcluster:8001/plugins name=prometheus
       -d name=prometheus \
       | jq
 
-(for ((i=0;i<64;i++))
+(for ((i=0;i<32;i++))
    do
      sleep 1
      http -h GET $KONG_PROXY_URI/mockbin?apikey=JanePassword
@@ -1591,7 +1591,7 @@ http -form POST kongcluster:8001/plugins name=prometheus
      http -h GET $KONG_PROXY_URI/mockbin
    done)
 
-### (for ((i=0;i<64;i++))
+### (for ((i=0;i<32;i++))
        do
          sleep 1
          curl -IsX GET $KONG_PROXY_URI/mockbin?apikey=JanePassword
@@ -1600,57 +1600,35 @@ http -form POST kongcluster:8001/plugins name=prometheus
        done)
 
 
+## Task: Task: Get Prometheus Plugin Metrics through API
+
+http GET kongcluster:8101/metrics | grep mockbin
+### curl -sX GET kongcluster:8101/metrics | grep mockbin
+
+http GET kongcluster:8100/metrics | grep mockbin
+### curl -sX GET kongcluster:8100/metrics | grep mockbin
+
+http GET kongcluster:8100/metrics
+### curl -sX GET kongcluster:8100/metrics
+
+
+# Task: Configure Grafana
+
+env | grep GRAFANA_URI
+
+
+## Task: Get Metrics from Prometheus
+
+env | grep PROMETHEUS_URI 
 
 
 
 
-
-
-
-
-
-
-## Task: Create a service with a route
-
-http POST kongcluster:8001/services \
-    name=mockbin \
-    url=http://mockbin:8080/request
-
-### curl -sX POST kongcluster:8001/services \
-      -d name=mockbin \
-      -d url=http://mockbin:8080/request \
-      | jq
-
-http -f POST kongcluster:8001/services/mockbin/routes \
-    name=mockbin \
-    paths=/mockbin
-
-### curl -sX POST kongcluster:8001/services/mockbin/routes \
-      -d name=mockbin \
-      -d paths=/mockbin \
-      | jq
-
-## Task: Enable key-auth, Create consumer and assign credentials
-
-http POST kongcluster:8001/plugins name=key-auth
-### curl -sX POST kongcluster:8001/plugins \
-         -d name=key-auth \
-         | jq
-
-http POST kongcluster:8001/consumers username=Jane
-### curl -sX POST kongcluster:8001/consumers \
-         -d username=Jane \
-         | jq
-
-http POST kongcluster:8001/consumers/Jane/key-auth key=JanePassword
-### curl -sX POST kongcluster:8001/consumers/Jane/key-auth \
-         -d key=JanePassword \
-         | jq
 
 
 ## Task: Configure Rate Limiting Advanced Plugin
 
-http --form POST kongcluster:8001/plugins \
+http -f POST kongcluster:8001/plugins \
   name=rate-limiting-advanced \
   config.limit=10 \
   config.limit=20 \
@@ -1675,19 +1653,21 @@ http --form POST kongcluster:8001/plugins \
       -d config.redis.port=6379 \
       | jq
 
+
 ## Task: Create Traffic with Advanced Rate Limiting Plugin Enabled
 
-(for ((i=1;i<=20;i++))
+(for ((i=0;i<32;i++))
    do
      sleep 1
      http GET $KONG_PROXY_URI/mockbin?apikey=JanePassword
    done)
 
-### (for ((i=1;i<=20;i++))
+### (for ((i=0;i<32;i++))
        do
          sleep 1
          curl -isX GET $KONG_PROXY_URI/mockbin?apikey=JanePassword
        done)
+
 
 ## Task: Configure Request Transformer Advanced Plugin
 
@@ -1702,14 +1682,16 @@ http --form POST kongcluster:8001/plugins \
       -d config.rename.headers=User-Agent:My-User-Agent \
       | jq
 
+
 ## Task: Create Request to See Request Headers
 
-http GET $KONG_PROXY_URI/mockbin/request?apikey=JanePassword
-### curl -sX GET $KONG_PROXY_URI/mockbin/request?apikey=JanePassword | jq
+http GET $KONG_PROXY_URI/mockbin?apikey=JanePassword
+### curl -sX GET $KONG_PROXY_URI/mockbin?apikey=JanePassword | jq
+
 
 ## Task: Configure Response Transformer Advanced Plugin
 
-http --form POST kongcluster:8001/plugins \
+http -form POST kongcluster:8001/plugins \
   name=response-transformer-advanced \
   config.add.json=json-key-added:Test-Key \
   config.add.headers=X-Kong-Test-Response-Header:MyResponseHeader
@@ -1720,20 +1702,8 @@ http --form POST kongcluster:8001/plugins \
     -d config.add.headers=X-Kong-Test-Response-Header:MyResponseHeader \
     | jq
 
-## Task: Create Request to See Response  Headers/Body
+
+## Task: Create Request to See Response Headers/Body
 
 http GET $KONG_PROXY_URI/mockbin?apikey=JanePassword
 ### curl -isX $KONG_PROXY_URI/mockbin?apikey=JanePassword
-
-
-
-
-
-
-
-## Slide 43
-$ http --form POST kongcluster:8001/plugins name=prometheus \
-$ for ((i=1;i<=20;i++)); do sleep 1; http GET $KONG_PROXY_URI/randomyear?apikey=JoePassword; done
-
-## Slide 44
-$ http docker:8101/metrics
