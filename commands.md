@@ -1,6 +1,7 @@
 # 01 - Kong Gateway Installation
 
 ## Task: Obtain Kong docker compose file and certificates
+
 cd
 ./setup-docker.sh
 git clone https://github.com/gigaprimatus/kong-gateway-operations.git
@@ -8,25 +9,31 @@ cd kong-gateway-operations/installation
 tree
 
 ## Task: Move SSL certificates 
+
 cp -R ssl-certs /srv/shared
 
 ## Task: Instantiate log files and deploy Kong
+
 mkdir -p /srv/shared/logs
 touch $(grep '/srv/shared/logs/' docker-compose.yaml|awk '{print $2}'|xargs)
 chmod a+w /srv/shared/logs/*
 docker-compose up -d
 
 ## Training Lab Environment
+
 env | grep KONG_ | grep -v SERVICE | sort
 
 ## Task: Verify Admin API
-http --headers GET kongcluster:8001
+
+http -h GET kongcluster:8001
 ### curl -IX GET kongcluster:8001
 
 ## Task: Verify Kong Manager 
+
 echo $KONG_MANAGER_URI
 
 ## Task: Task: Apply and review the licence
+
 http –headers POST kongcluster:8001/licenses \ 
   payload=@/etc/kong/license.json \ 
   | grep HTTP
@@ -46,7 +53,7 @@ docker-compose up -d kong-cp
 
 ## Task: Enable the Developer Portal:
 
-http --form PATCH kongcluster:8001/workspaces/default \
+http -f PATCH kongcluster:8001/workspaces/default \
   config.portal=true
 
 ### curl -sX PATCH kongcluster:8001/workspaces/default \
@@ -54,6 +61,7 @@ http --form PATCH kongcluster:8001/workspaces/default \
       | jq
 
 ## Task : Create a Developer Account
+
 http POST $KONG_PORTAL_API_URI/default/register <<< '{"email":"myemail@example.com",
                                                       "password":"password",
                                                       "meta":"{\"full_name\":\"Dev E. Loper\"}"
@@ -68,6 +76,7 @@ http POST $KONG_PORTAL_API_URI/default/register <<< '{"email":"myemail@example.c
       | jq            
 
 ## Task: Task: Approve the Developer
+
 http PATCH "$KONG_ADMIN_API_URI/default/developers/myemail@example.com" <<< '{"status": 0}'
 
 ### curl -sX PATCH "$KONG_ADMIN_API_URI/default/developers/myemail@example.com" \
@@ -76,6 +85,7 @@ http PATCH "$KONG_ADMIN_API_URI/default/developers/myemail@example.com" <<< '{"s
       | jq
 
 ## Task: Add an API Spec to test
+
 http --form POST kongcluster:8001/files \
   "path=specs/jokes.one.oas.yaml" \
   "contents=@jokes1OAS.yaml"
@@ -88,6 +98,7 @@ http --form POST kongcluster:8001/files \
 ## Using decK
 
 ## Task: Configure decK and Create a sample Service/Route
+
 cd ~/kong-gateway-operations/installation
 sed -i "s|KONG_ADMIN_API_URI|$KONG_ADMIN_API_URI|g" deck/deck.yaml
 cp deck/deck.yaml ~/.deck.yaml
@@ -123,6 +134,7 @@ deck reset
 deck diff --state gwopslabdump.yaml
 
 ## Task: Sync updates and view config in Kong Manager
+
 deck diff \
   --state deck/sampledump.yaml \
   --workspace default
@@ -132,6 +144,7 @@ deck sync \
   --workspace default
 
 ## Task: Restore Kong configuration using decK
+
 deck sync \
   --state deck/gwopslabdump.yaml \
   --workspace default
@@ -143,10 +156,12 @@ http --verify no GET https://kongcluster:8443/mockbin
 ### curl -k -iX GET https://kongcluster:8443/mockbin
 
 ## Kong Upgrade Lab
+
 cd ~/kong-gateway-operations/installation
 docker-compose down
 
 ## Task: Create a dedicated docker network and a database container
+
 docker network create kong-edu-net
 docker run -d --name kong-ee-database --network kong-edu-net \
   -p 5432:5432 \
@@ -156,6 +171,7 @@ docker run -d --name kong-ee-database --network kong-edu-net \
   postgres:13.1
 
 ## Task: Bootstrap the Database for Kong 2.5.1.2
+
 export KONG_LICENSE_DATA=`cat "/etc/kong/license.json"` 
 docker run --rm --network kong-edu-net \
   -e "KONG_DATABASE=postgres" \
@@ -170,6 +186,7 @@ docker run --rm --network kong-edu-net \
   kong/kong-gateway:2.5.1.2-alpine kong migrations bootstrap
 
 ## Task: Start Kong Gateway 2.5.1.2
+
 docker run -d --name kong-ee-edu --network kong-edu-net \
   -e "KONG_DATABASE=postgres" \
   -e "KONG_PG_HOST=kong-ee-database" \
@@ -190,6 +207,7 @@ docker run -d --name kong-ee-edu --network kong-edu-net \
   kong/kong-gateway:2.5.1.2-alpine
 
 ## Task: Check Version & create a simple service/route
+
 http GET kongcluster:8001 | jq .version
 ### curl -sX GET kongcluster:8001 | jq .version
 
@@ -212,6 +230,7 @@ http -f POST kongcluster:8001/services/mockbin/routes \
       | jq
 
 ## Task: Run the 2.6 migrations
+
 docker run --rm --network kong-edu-net \
   -e "KONG_DATABASE=postgres" \
   -e "KONG_PG_HOST=kong-ee-database" \
@@ -224,6 +243,7 @@ docker run --rm --network kong-edu-net \
   kong migrations up
 
 ## Task: Complete the 2.6 migrations
+
 docker run --rm --network kong-edu-net \
   -e "KONG_DATABASE=postgres" \
   -e "KONG_PG_HOST=kong-ee-database" \
@@ -237,6 +257,7 @@ docker run --rm --network kong-edu-net \
 docker container rm $(docker container stop kong-ee-edu)
 
 ## Task: Start the new 2.6 container:
+
 docker run -d --name kong-ee-edu --network kong-edu-net \
   -e "KONG_DATABASE=postgres" \
   -e "KONG_PG_HOST=kong-ee-database" \
@@ -257,7 +278,8 @@ docker run -d --name kong-ee-edu --network kong-edu-net \
   kong/kong-gateway:2.6.0.1-alpine
 
 ## Task: Confirm upgrade and persistence of data
-http --headers GET kongcluster:8000/mockbin
+
+http -h GET kongcluster:8000/mockbin
 ### curl -IX GET kongcluster:8000/mockbin
 
 ## Task: Clean up Lab
@@ -267,6 +289,7 @@ docker volume rm $(docker volume ls -q) > /dev/null 2>&1
 docker network rm -f kong-edu-net > /dev/null 2>&1
 
 ## Task: Upgrade Using Docker Compose
+
 export KONG_LICENSE_DATA=`cat "/etc/kong/license.json"`
 export KONG_VERSION="2.5.1.2-alpine"
 docker-compose -f kongupgdemo.yaml up -d
@@ -295,25 +318,24 @@ http -f POST kongcluster:8001/services/mockbin/routes \
       -d paths=/mockbin \
       | jq
 
-
-
 export KONG_VERSION="2.6.0.1-alpine"
 docker-compose -f kongupgdemo.yaml up -d
 
-http --headers GET kongcluster:8000/mockbin
+http -h GET kongcluster:8000/mockbin
 ### curl -IX GET kongcluster:8000/mockbin
 
 docker-compose -f kongupgdemo.yaml down -v
 
-
 # 02 - Securing Kong Gatway
 
 ## Lab: Securing Kong Gateway
+
 cd
 git clone https://github.com/gigaprimatus/kong-gateway-operations.git
 source kong-gatway-operations/installation/scram.sh
 
 ## Task: Create New Role my_role and add Permissions
+
 http POST kongcluster:8001/rbac/roles name=my_role
 ### curl -sX POST kongcluster:8001/rbac/roles -d name=my_role | jq
 
@@ -329,6 +351,7 @@ http POST kongcluster:8001/rbac/roles/my_role/endpoints/ \
       | jq  
 
 ## Task: Create an RBAC user called 'my-super-admin'
+
 http post kongcluster:8001/rbac/users name=my-super-admin user_token="my_token"
 ### curl -sX POST kongcluster:8001/rbac/users \
       -d name=my-super-admin \
@@ -336,6 +359,7 @@ http post kongcluster:8001/rbac/users name=my-super-admin user_token="my_token"
       | jq
 
 ## Task: Assign role created earlier and Verify user 
+
 http POST kongcluster:8001/rbac/users/my-super-admin/roles roles='my_role'
 ### curl -sX POST kongcluster:8001/rbac/users/my-super-admin/roles -d roles='my_role' | jq
 
@@ -343,14 +367,17 @@ http GET kongcluster:8001/rbac/users/my-super-admin/roles
 ### curl -sX GET kongcluster:8001/rbac/users/my-super-admin/roles | jq
 
 ## Task: Assign super-admin Role to my-super-admin
+
 http POST kongcluster:8001/rbac/users/my-super-admin/roles roles='super-admin'
 ### curl -sX POST kongcluster:8001/rbac/users/my-super-admin/roles -d roles='super-admin' | jq
 
 ## Task: Verify my-super-admin Role
+
 http GET kongcluster:8001/rbac/users/my-super-admin/roles
 ### curl -sX GET kongcluster:8001/rbac/users/my-super-admin/roles | jq
 
 ## Task: Automatically Assign Roles to RBAC user
+
 http POST kongcluster:8001/rbac/users \
   name=super-admin \
   user_token="super-admin"
@@ -364,6 +391,7 @@ http GET kongcluster:8001/rbac/users/super-admin/roles
 ### curl -sX GET kongcluster:8001/rbac/users/super-admin/roles | jq
 
 ## Task: Enable RBAC, reducing default cookie_lifetime
+
 cd ~/kong-gateway-operations/installation
 sed -i 's|#KONG_ENFORCE_RBAC|KONG_ENFORCE_RBAC|g' docker-compose.yaml
 sed -i 's|#KONG_ADMIN_GUI_AUTH|KONG_ADMIN_GUI_AUTH|g' docker-compose.yaml
@@ -372,14 +400,16 @@ sed -i 's|:36000|:60|g' docker-compose.yaml
 docker-compose stop kong-cp; docker-compose rm -f kong-cp; docker-compose up -d kong-cp
 
 ## Task: Revert cookie_lifetime to default value
+
 sed -i 's|:60|:36000|g' docker-compose.yaml
 docker-compose stop kong-cp; docker-compose rm -f kong-cp; docker-compose up -d kong-cp
 
 
 ## Task: Verify Authentication with Admin API
-http --headers GET kongcluster:8001/services
+
+http -h GET kongcluster:8001/services
 ### curl -sX GET kongcluster:8001/services
-http --headers GET kongcluster:8001/services Kong-Admin-Token:my_token
+http -h GET kongcluster:8001/services Kong-Admin-Token:my_token
 ### curl -sX GET kongcluster:8001/services -H Kong-Admin-Token:my_token | jq
 
 ## Task: Create WorkspaceA & WorkspaceB
@@ -505,7 +535,8 @@ http POST kongcluster:8001/WorkspaceB/rbac/users/AdminB/roles/ \
       -H Kong-Admin-Token:super-admin \
       | jq
 
-## Verify AdminA/AdminB access to corresponding Workspaces
+## Task: Verify AdminA/AdminB access to corresponding Workspaces
+
 http GET kongcluster:8001/WorkspaceA/rbac/users Kong-Admin-Token:AdminA_token
 ### curl -sX GET kongcluster:8001/WorkspaceA/rbac/users \
       -H Kong-Admin-Token:AdminA_token \
@@ -525,7 +556,6 @@ http GET kongcluster:8001/WorkspaceB/rbac/users Kong-Admin-Token:AdminA_token
 ### curl -sX GET kongcluster:8001/WorkspaceB/rbac/users \
       -H Kong-Admin-Token:AdminA_token \
       | jq
-
 
 ## Task: Deploy a service to WorkspaceA with correct Admin
 
@@ -570,6 +600,7 @@ http --header GET kongcluster:8000/mocker host:myhost.me | grep HTTP
 ### curl -sIX GET kongcluster:8000/mocker -H host:myhost.me | grep HTTP
 
 ## Task: Add TeamA_engineer & TeamB_engineer to the workspace teams 
+
 http POST kongcluster:8001/WorkspaceA/rbac/users \
   name=TeamA_engineer \
   user_token=teama_engineer_user_token \
@@ -604,6 +635,7 @@ http POST kongcluster:8001/WorkspaceB/rbac/users \
      | jq
 
 ## Task: Create read-only roles and permissions for 'Team_engineer'
+
 http POST kongcluster:8001/WorkspaceA/rbac/roles \
   name=engineer-role \
   Kong-Admin-Token:super-admin
@@ -650,6 +682,7 @@ http POST kongcluster:8001/WorkspaceB/rbac/roles/engineer-role/endpoints/ \
 
 
 ## Task: Assign roles and permissions for 'Team_engineer'
+
 http POST kongcluster:8001/WorkspaceA/rbac/users/TeamA_engineer/roles \
   roles=engineer-role \
   Kong-Admin-Token:AdminA_token
@@ -668,7 +701,7 @@ http POST kongcluster:8001/WorkspaceB/rbac/users/TeamB_engineer/roles \
       -H Kong-Admin-Token:AdminB_token \
       | jq
 
-## Verifying Teams Access
+## Task: Verifying Teams Access
 
 http GET kongcluster:8001/WorkspaceA/consumers \
   Kong-Admin-Token:teama_engineer_user_token
@@ -717,6 +750,7 @@ http GET kongcluster:8001/WorkspaceB/consumers \
       | jq
 
 ## Task: Disable RBAC
+
 sed -i 's|KONG_ENFORCE_RBAC|#KONG_ENFORCE_RBAC|g' docker-compose.yaml
 sed -i 's|KONG_ADMIN_GUI_AUTH|#KONG_ADMIN_GUI_AUTH|g' docker-compose.yaml
 sed -i 's|KONG_ADMIN_GUI_SESSION_CONF|#KONG_ADMIN_GUI_SESSION_CONF|g' docker-compose.yaml
@@ -728,6 +762,7 @@ docker-compose stop kong-cp; docker-compose rm -f kong-cp; docker-compose up -d 
 cat docker-compose.yaml | grep -i admin_listen
 
 ## Task: Bring up Kong listening on localhost
+
 cd ~/kong-gateway-operations/installation
 docker-compose down -v
 docker-compose -f kongsecadmin.yaml up -d
@@ -737,14 +772,13 @@ cat kongsecadmin.yaml
 cat loopback.yaml
 
 ## Task: Test  Service/Route for Admin API
+
 http GET kongcluster:8001/services
 ### curl -sX GET kongcluster:8001/services
 http GET kongcluster:8000/admin-api/services apikey:secret
 ### curl -sX GET kongcluster:8000/admin-api/services \
       -H apikey:secret \
       | jq
-
-
 
 # 03 - Securing Services on Kong
 
@@ -776,7 +810,6 @@ http -f POST kongcluster:8001/services/mockbin_service/routes \
       -d name=mocking \
       -d paths=/mock \
       | jq
-
 
 ## Task: Configure Rate Limiting and key-auth Plugins
 
@@ -870,9 +903,9 @@ TOKEN=$(jwt -e -s $SECRET --jwt '{"iss":'"$KEY"'}')
 echo $TOKEN
 
 ## Task: Consume the service with JWT credentials
-http --headers GET kongcluster:8000/mock
+http -h GET kongcluster:8000/mock
 ### curl -IX GET kongcluster:8000/mock
-http --headers GET kongcluster:8000/mock Authorization:"Bearer $TOKEN"
+http -h GET kongcluster:8000/mock Authorization:"Bearer $TOKEN"
 ### curl -isX GET kongcluster:8000/mock -H Authorization:"Bearer $TOKEN"
 
 ## Task: Create a self-signed certificate 
@@ -1007,6 +1040,7 @@ http -f POST kongcluster:8001/consumers/demo@example.com/plugins \
 
 
 # 04 - OIDC Plugin
+
 cd
 source scram.sh
 
@@ -1015,9 +1049,9 @@ git clone https://github.com/gigaprimatus/kong-gateway-operations.git
 source ~/kong-gateway-operations/installation/scram.sh
 
 ## Task: Deploy Keycloak
+
 cd ~/kong-gateway-operations/installation
-sed -i 's|\#\^|\ \ |g' docker-compose.yaml
-docker-compose up -d
+cat docker-compose.yaml | less
 cd ~/kong-gateway-operations/oidc
 cat kong_realm_template.json | jq '.users[].username'
 
@@ -1043,6 +1077,7 @@ http -f POST kongcluster:8001/services/my-oidc-service/routes \
       | jq
 
 ## Task: Confirm Service Functionality
+
 http GET kongcluster:8000/oidc
 ### curl -isX GET kongcluster:8000/oidc
 
@@ -1068,12 +1103,14 @@ http -f POST kongcluster:8001/routes/my-oidc-route/plugins \
       | jq
 
 ## Task: Verify Protected Service
+
 http GET kongcluster:8000/oidc
 ### curl -iX GET kongcluster:8000/oidc
 http GET kongcluster:8000/oidc -a user:password
 ### curl -iX GET kongcluster:8000/oidc -u user:password
 
 ## Task: View Kong Discovery Information from IDP
+
 http GET kongcluster:8001/openid-connect/issuers
 ### curl -sX GET kongcluster:8001/openid-connect/issuers | jq
 http -b GET kongcluster:8001/openid-connect/issuers | jq -r .data[].issuer
@@ -1093,15 +1130,17 @@ http -b GET kongcluster:8001/plugins/$OIDC_PLUGIN_ID | jq .config.password_param
 ### curl -sX GET kongcluster:8001/plugins/$OIDC_PLUGIN_ID | jq .config.password_param_type
 
 ## Task: Provide credentials to Kong and retrieve Access Token
+
 http GET kongcluster:8000/oidc -a employee:test
 ### curl -iX GET kongcluster:8000/oidc -u employee:test
 
 BEARER_TOKEN=$(http kongcluster:8000/oidc -a employee:test | jq -r '.headers.authorization' | cut -c 7-)
 ### BEARER_TOKEN=$(curl -sX GET kongcluster:8000/oidc -u employee:test | jq -r '.headers.authorization' | cut -c 7-)
+
+## Task: Decoding the Bearer Token
 jwt -d $BEARER_TOKEN | jq
 
-
-## Task: Get an Access Token from Keycloak for User
+## Task: Get a token and authenticate with it
 
 BEARER_TOKEN=$(http -f POST $KEYCLOAK_URI/auth/realms/kong/protocol/openid-connect/token \
                  grant_type=password \
@@ -1124,6 +1163,7 @@ http GET kongcluster:8000/oidc authorization:"Bearer $BEARER_TOKEN"
 
 
 ## Task: Configure a consumer & modify OIDC plugin to require preferred_username
+
 http PUT kongcluster:8001/consumers/employee
 ### curl -sX PUT kongcluster:8001/consumers/employee | jq
 
@@ -1141,6 +1181,7 @@ http -f PATCH kongcluster:8001/plugins/$OIDC_PLUGIN_ID \
       | jq
 
 ## Task: Verify authorization works for a user mapped to a Kong consumer
+
 http GET kongcluster:8000/oidc -a employee:test
 ### curl -isX GET kongcluster:8000/oidc -u employee:test
 
@@ -1165,6 +1206,7 @@ for ((i=1;i<=5;i++)); do http GET kongcluster:8000/oidc -a employee:test; done
 ### for ((i=1;i<=5;i++)); do curl -X GET kongcluster:8000/oidc -u employee:test; done
 
 ## Task: Cleanup
+
 http -f PATCH kongcluster:8001/plugins/$OIDC_PLUGIN_ID \
   config.consumer_claim= \
   | jq . | grep consumer_claim
@@ -1216,7 +1258,6 @@ http -f POST kongcluster:8001/routes/my-oidc-route/plugins \
 http GET kongcluster:8000/oidc -a employee:test
 ### curl -isX GET kongcluster:8000/oidc -u employee:test
 
-
 ## Task: Modify the ACL plugin to require users being members of the role demo-service to access the service
 
 ACL_PLUGIN_ID=$(http GET kongcluster:8001/routes/my-oidc-route/plugins \
@@ -1235,11 +1276,9 @@ http -f PATCH kongcluster:8001/routes/my-oidc-route/plugins/$ACL_PLUGIN_ID \
 http GET kongcluster:8000/oidc -a employee:test
 ### curl -sX GET kongcluster:8000/oidc -u employee:test
 
-
 ## Task: Cleanup
 http DELETE kongcluster:8001/routes/my-oidc-route/plugins/$ACL_PLUGIN_ID
 ### curl -iX DELETE kongcluster:8001/routes/my-oidc-route/plugins/$ACL_PLUGIN_ID
-
 
 ## Task: Modify & verify the plugin to require a scope of admins
 
@@ -1288,8 +1327,6 @@ for ((i=1;i<=6;i++)); do http GET kongcluster:8000/oidc -a partner:test; done
 ### for ((i=1;i<=6;i++)); do curl -iX GET kongcluster:8000/oidc -u partner:test; done
 for ((i=1;i<=12;i++)); do http GET kongcluster:8000/oidc -a employee:test; done
 ### for ((i=1;i<=12;i++)); do curl -iX GET kongcluster:8000/oidc -u employee:test; done
-
-
 
 # 05 - Troubleshooting
 
@@ -1372,7 +1409,7 @@ curl -o /dev/null --silent --show-error --write-out '\n\nlookup: %{time_namelook
 cd ~/kong-gateway-operations/troubleshooting
 deck sync --state broken-lab1.yaml
 
-http --headers GET $KONG_PROXY_URI/mockbin/request?apikey=JanePassword | head -1
+http -h GET $KONG_PROXY_URI/mockbin/request?apikey=JanePassword | head -1
 ## curl -IX GET $KONG_PROXY_URI/mockbin/request?apikey=JanePassword | head -1
 
 ## Broken Lab Scenario 1: Solution 
@@ -1412,11 +1449,10 @@ TRNS_PLUGIN_ID=$(http GET kongcluster:8001/routes/nocorrelation/plugins/ \
 http DELETE kongcluster:8001/plugins/$TRNS_PLUGIN_ID
 ### curl -sX DELETE kongcluster:8001/plugins/$TRNS_PLUGIN_ID
 
-
-
 # 06 - Kong Vitals
 
 ## Lab: Kong Vitals
+
 cd
 source scram.sh
 cd
@@ -1469,7 +1505,6 @@ http POST kongcluster:8001/consumers/Jane/key-auth key=JanePassword
       -d key=JanePassword \
       | jq
 
-
 ## Task: Let's Create Some Traffic 
 
 (for ((i=0;i<64;i++))
@@ -1484,33 +1519,27 @@ http POST kongcluster:8001/consumers/Jane/key-auth key=JanePassword
          curl -IsX GET $KONG_PROXY_URI/mockbin/request?apikey=JanePassword
        done)
 
-
 ## Task: Get Metrics from Vitals API
 
 http GET kongcluster:8001/default/vitals/status_code_classes?interval=minutes | jq .stats.cluster
 ### curl -sX GET kongcluster:8001/default/vitals/status_code_classes?interval=minutes | jq .stats.cluster
 
-
 ## Task: Inspect Kong Vitals Configuration
 
 cat docker-compose.yaml | grep KONG_VITALS | sort | uniq
-
 
 ## Task: Inspect Prometheus/StatsD Configuration
 
 cat /srv/shared/misc/prometheus.yaml
 cat /srv/shared/misc/statsd.rules.yaml
 
-
 ## Task: Get to GUI for Prometheus
 
 env | grep PROMETHEUS_URI
 
-
 ## Task: Configure Grafana
 
 env | grep GRAFANA_URI
-
 
 ## Task: Let's Create Some Traffic 
 
@@ -1526,8 +1555,6 @@ env | grep GRAFANA_URI
          curl -IsX GET $KONG_PROXY_URI/mockbin/request?apikey=JanePassword
        done)
 
-
-
 # 07 - Advanced Plugins review
 
 ## Lab: Advanced Plugins
@@ -1538,7 +1565,6 @@ source scram.sh
 cd
 git clone https://github.com/gigaprimatus/kong-gateway-operations.git
 source ~/kong-gateway-operations/installation/scram.sh
-
 
 ## Task: Configure Service/Route/Plugin/Consumer
 
@@ -1575,7 +1601,6 @@ http POST kongcluster:8001/consumers/Jane/key-auth key=JanePassword
       -d key=JanePassword \
       | jq
 
-
 ## Task: Enable the Prometheus Plugin & Generate Traffic
 
 http -form POST kongcluster:8001/plugins name=prometheus
@@ -1599,7 +1624,6 @@ http -form POST kongcluster:8001/plugins name=prometheus
          curl -IsX GET $KONG_PROXY_URI/mockbin
        done)
 
-
 ## Task: Task: Get Prometheus Plugin Metrics through API
 
 http GET kongcluster:8101/metrics | grep mockbin
@@ -1611,20 +1635,13 @@ http GET kongcluster:8100/metrics | grep mockbin
 http GET kongcluster:8100/metrics
 ### curl -sX GET kongcluster:8100/metrics
 
-
 # Task: Configure Grafana
 
 env | grep GRAFANA_URI
 
-
 ## Task: Get Metrics from Prometheus
 
 env | grep PROMETHEUS_URI 
-
-
-
-
-
 
 ## Task: Configure Rate Limiting Advanced Plugin
 
@@ -1653,7 +1670,6 @@ http -f POST kongcluster:8001/plugins \
       -d config.redis.port=6379 \
       | jq
 
-
 ## Task: Create Traffic with Advanced Rate Limiting Plugin Enabled
 
 (for ((i=0;i<32;i++))
@@ -1668,7 +1684,6 @@ http -f POST kongcluster:8001/plugins \
          curl -isX GET $KONG_PROXY_URI/mockbin?apikey=JanePassword
        done)
 
-
 ## Task: Configure Request Transformer Advanced Plugin
 
 http --form POST kongcluster:8001/plugins \
@@ -1682,12 +1697,10 @@ http --form POST kongcluster:8001/plugins \
       -d config.rename.headers=User-Agent:My-User-Agent \
       | jq
 
-
 ## Task: Create Request to See Request Headers
 
 http GET $KONG_PROXY_URI/mockbin?apikey=JanePassword
 ### curl -sX GET $KONG_PROXY_URI/mockbin?apikey=JanePassword | jq
-
 
 ## Task: Configure Response Transformer Advanced Plugin
 
@@ -1701,7 +1714,6 @@ http -form POST kongcluster:8001/plugins \
     -d config.add.json=json-key-added:Test-Key \
     -d config.add.headers=X-Kong-Test-Response-Header:MyResponseHeader \
     | jq
-
 
 ## Task: Create Request to See Response Headers/Body
 
