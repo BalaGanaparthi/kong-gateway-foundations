@@ -68,3 +68,4 @@
 - Revised Transformer Advanced Use Cases slide
 - Revised Request Transformer Plugin Enabling slide
 - Revised Response Transformer Plugin Enabling slide
+- Added section for jq Plugin with lab and slides

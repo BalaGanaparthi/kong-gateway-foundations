@@ -1603,7 +1603,7 @@ http POST kongcluster:8001/consumers/Jane/key-auth key=JanePassword
 
 ## Task: Enable the Prometheus Plugin & Generate Traffic
 
-http -form POST kongcluster:8001/plugins name=prometheus
+http -f POST kongcluster:8001/plugins name=prometheus
 ### curl -sX POST kongcluster:8001/plugins \
       -d name=prometheus \
       | jq
@@ -1704,7 +1704,7 @@ http GET $KONG_PROXY_URI/mockbin?apikey=JanePassword
 
 ## Task: Configure Response Transformer Advanced Plugin
 
-http -form POST kongcluster:8001/plugins \
+http -f POST kongcluster:8001/plugins \
   name=response-transformer-advanced \
   config.add.json=json-key-added:Test-Key \
   config.add.headers=X-Kong-Test-Response-Header:MyResponseHeader
@@ -1719,3 +1719,22 @@ http -form POST kongcluster:8001/plugins \
 
 http GET $KONG_PROXY_URI/mockbin?apikey=JanePassword
 ### curl -isX $KONG_PROXY_URI/mockbin?apikey=JanePassword
+
+## Task: Configure jq Plugin
+
+http -b GET kongcluster:8000/mockbin?apikey=JanePassword
+### curl -sX GET kongcluster:8000/mockbin?apikey=JanePassword | jq
+
+http -f POST kongcluster:8001/services/mockbin/plugins \
+    name=jq \
+    config.response_jq_program='del(.queryString.apikey)'
+
+### curl -sX POST kongcluster:8001/services/mockbin/plugins \
+      -d name=jq \
+      -d config.response_jq_program='del(.queryString.apikey)' \
+      | jq
+
+## Task: Create Request to See Response Body
+
+http -b GET $KONG_PROXY_URI/mockbin/request?apikey=JanePassword
+### curl -sX GET $KONG_PROXY_URI/mockbin/request?apikey=JanePassword | jq
