@@ -166,15 +166,14 @@ services:
       KONG_PORTAL_AUTH: "basic-auth"
       KONG_PORTAL_SESSION_CONF: "{\"cookie_name\":\"portal-session\",\"secret\":\"this_is_my_secret\",\"storage\":\"kong\",\"cookie_secure\":true, \"cookie_domain\":\".labs.konghq.com\", \"cookie_samesite\":\"off\"}"
       KONG_PORTAL_EMAIL_VERIFICATION: "off"
-      KONG_PORTAL_EMAILS_FROM: "me@example.com"
-      KONG_PORTAL_EMAILS_REPLY_TO: "me@example.com"
-      KONG_ADMIN_EMAILS_FROM: "me@example.com"
-      KONG_ADMIN_EMAILS_REPLY_TO: "me@example.com"
+      KONG_PORTAL_EMAILS_FROM: "kongtest@gmail.com"
+      KONG_PORTAL_EMAILS_REPLY_TO: "kongtest@gmail.com"
+      KONG_ADMIN_EMAILS_FROM: "kongtest@gmail.com"
+      KONG_ADMIN_EMAILS_REPLY_TO: "kongtest@gmail.com"
       KONG_SMTP_MOCK: "off"
-      KONG_SMTP_ADMIN_EMAILS: "me@example.com"
-      KONG_SMTP_HOST: "smtp-server"
+      KONG_SMTP_ADMIN_EMAILS: "kongtest@gmail.com"
+      KONG_SMTP_HOST: "smtp"
       KONG_SMTP_PORT: 1025
-      KONG_SMTP_DOMAIN: "api.kong.lan"
      #KONG_SMTP_DOMAIN: ${KONG_SMTP_DOMAIN}
       KONG_NGINX_WORKER_PROCESSES: 1
       KONG_LUA_SSL_TRUSTED_CERTIFICATE: "system"
@@ -235,8 +234,8 @@ services:
     networks:
     - kong-edu-net
     image: reachfive/fake-smtp-server:0.8.1
-    container_name: smtp-server
-    hostname: smtp-server
+    container_name: smtp
+    hostname: smtp
     healthcheck:
       test: ["CMD-SHELL", "exit 0"]
       interval: 16s
@@ -244,7 +243,6 @@ services:
       retries: 16        
     restart: on-failure
     ports:
-   #- "25:1025/tcp"
     - "1080:1080/tcp"
 
   mockbin:
