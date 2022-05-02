@@ -1,5 +1,5 @@
  Kong Gateway Ops V1.00 Release Notes
- 2022.04.24, visible @ bit.ly/KGIL-201
+ 2022.04.29, visible @ bit.ly/KGIL-201
  
 - Upgraded the used instance of Kong Gateway to 2.8.1.0
 - Reformated/standardized commands based on best practices
