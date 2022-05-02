@@ -84,6 +84,9 @@ http PATCH "$KONG_ADMIN_API_URI/default/developers/myemail@example.com" <<< '{"s
       -d '{"status": 0}' \
       | jq
 
+http GET kongcluster:1080/api/emails
+### curl -sX GET kongcluster:1080/api/emails | jq
+
 ## Task: Add an API Spec to test
 
 http --form POST kongcluster:8001/files \

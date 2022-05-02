@@ -21,7 +21,8 @@
 - Removed External Depedency using local mockbin container
 - Added CLI commands for Dev Portal Enablement 
 - Added CLI commands for Developer registration/approval
-- Added API Spec. for testing to Dev Portal section
+- Added CLI command for getting portal invitation email
+- Added API Spec for testing to Dev Portal section
 - Moved decK config to avoid inclusion in every instance
 - Removed/Replaced unused and no-relevant dumps and configs
 - Added section for upgrading Kong scenarios inline/compose
