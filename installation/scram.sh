@@ -36,12 +36,14 @@ if [ -z "KONG_LICENSE_DATA" ]; then unset KONG_LICENSE_DATA; fi
 printf "\n${red}Bringing up Kong Gateway.${normal}\n"
 docker-compose up -d
 printf "\n${red}Waiting for Gateway startup to finish.${normal}"
-sleep 8
+# sleep 8
+until curl --head kongcluster:8001 > /dev/null 2>&1; do sleep 1; done
 printf "\n${red}Applying Enterprise License.${normal}\n"
 http --headers POST "kongcluster:8001/licenses" payload=@/etc/kong/license.json | grep HTTP
 printf "\n${red}Recreating Contral Plane.${normal}\n"
 docker-compose stop kong-cp; docker-compose rm -f kong-cp; docker-compose up -d kong-cp
-sleep 8
+# sleep 8
+until curl --head kongcluster:8001 > /dev/null 2>&1; do sleep 1; done
 printf "\n${red}Checking Admin API.${normal}\n"
 curl -IsX GET kongcluster:8001 | grep Server
 printf "\n${red}Enabling the Developer Portal.${normal}\n"
