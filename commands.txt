@@ -1331,7 +1331,17 @@ for ((i=1;i<=6;i++)); do http GET kongcluster:8000/oidc -a partner:test; done
 for ((i=1;i<=12;i++)); do http GET kongcluster:8000/oidc -a employee:test; done
 ### for ((i=1;i<=12;i++)); do curl -iX GET kongcluster:8000/oidc -u employee:test; done
 
+
 # 05 - Troubleshooting
+
+## Lab: Troubleshooting in Kong
+
+cd
+source scram.sh
+
+cd
+git clone https://github.com/gigaprimatus/kong-gateway-operations.git
+source ~/kong-gateway-operations/installation/scram.sh
 
 ## Triage, Examine, Diagnose
 
@@ -1357,6 +1367,13 @@ jq -C '.' 8001-status.json | less -R
 ## Task: Explore Error Logs
 
 grep oidc /srv/shared/logs/proxy_error.log | grep consumer
+
+## Task: Explore Startup System Log
+
+docker exec kong-cp kong reload
+docker exec kong-cp kong reload --v
+docker exec kong-cp kong reload --vv
+
 
 ## Task: Use Debug Header to see used Service/Route
 
@@ -1400,6 +1417,11 @@ http -h GET kongcluster:8000/mockbin apikey:JanePassword X-Trace:1 | head -1
 http -h GET kongcluster:8000/mockbin X-Trace:1 | head -1
 ### curl -isX GET kongcluster:8000/mockbin -H X-Trace:1 | head -1
 cat /srv/shared/logs/granular_tracing.log | less
+
+## Task: Explore Audit Logs
+
+http GET kongcluster:8001/license/report
+http GET kongcluster:8001/audit/requests
 
 ## Task: Network troubleshooting with cURL
 
@@ -1451,6 +1473,7 @@ TRNS_PLUGIN_ID=$(http GET kongcluster:8001/routes/nocorrelation/plugins/ \
 
 http DELETE kongcluster:8001/plugins/$TRNS_PLUGIN_ID
 ### curl -sX DELETE kongcluster:8001/plugins/$TRNS_PLUGIN_ID
+
 
 # 06 - Kong Vitals
 
