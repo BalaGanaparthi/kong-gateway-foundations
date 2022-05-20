@@ -1356,7 +1356,7 @@ jq -C '.' 8001-status.json | less -R
 
 ## Task: Explore Error Logs
 
-cat /srv/shared/logs/proxy_error.log  | grep oidc | grep consumer
+grep oidc /srv/shared/logs/proxy_error.log | grep consumer
 
 ## Task: Use Debug Header to see used Service/Route
 
