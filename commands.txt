@@ -1741,3 +1741,29 @@ http -f POST kongcluster:8001/services/mockbin/plugins \
 
 http -b GET $KONG_PROXY_URI/mockbin/request?apikey=JanePassword
 ### curl -sX GET $KONG_PROXY_URI/mockbin/request?apikey=JanePassword | jq
+
+## Task: Configure Exit Transformer Plugin
+
+http GET kongcluster:8000/mockbin
+### curl -sX GET kongcluster:8000/mockbin
+
+$ cat << EOF > transform.lua
+-- transform.lua
+    return function(status, body, headers)
+      if not body or not body.message then
+        return status, body, headers
+      end
+
+      headers = { ["X-Some-Header"] = "ETP Triggered" }
+      local new_body = {
+        error = true,
+        status = status,
+        message = body.message .. ", Achtung!",
+      }
+
+      return status, new_body, headers
+    end
+EOF
+
+http GET $KONG_PROXY_URI/mockbin
+### curl -isX GET $KONG_PROXY_URI/mockbin
