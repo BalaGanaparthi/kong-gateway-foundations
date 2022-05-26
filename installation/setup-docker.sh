@@ -8,5 +8,5 @@ mkdir -p ~/.docker
 curl -so ~/.docker/ca.pem http://docker:9000/ca.pem
 curl -so ~/.docker/cert.pem http://docker:9000/cert.pem
 curl -so ~/.docker/key.pem http://docker:9000/key.pem
-docker-compose pull > /dev/null 2>&1
+docker-compose pull &>/dev/null &
 printf "\n${red}Docker Setup complete.${normal}"
