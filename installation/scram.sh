@@ -4,7 +4,7 @@ red=$(tput setaf 1)
 normal=$(tput sgr0)
 
 printf "\n${red}Setting up Kong Gateway Operations Lab Envrinment.${normal}"
-printf "\n${red}Setting up CA, certificate and key for docker.${normal}"
+printf "\n${red}Setting up CA, certificate and key for Docker.${normal}"
 mkdir -p ~/.docker
 curl -so ~/.docker/ca.pem http://docker:9000/ca.pem
 curl -so ~/.docker/cert.pem http://docker:9000/cert.pem
