@@ -1,5 +1,6 @@
 # 01 - Kong Gateway Installation
 
+
 ## Task: Obtain docker certificates, compose file etc.
 
 git clone https://github.com/gigaprimatus/kong-gateway-operations.git
@@ -7,9 +8,11 @@ cd kong-gateway-operations/installation
 ./setup-docker.sh
 ls -la
 
+
 ## Task: Move SSL certificates 
 
 cp -R ssl-certs /srv/shared
+
 
 ## Task: Instantiate log files and deploy Kong
 
@@ -18,18 +21,22 @@ touch $(grep '/srv/shared/logs/' docker-compose.yaml|awk '{print $2}'|xargs)
 chmod a+w /srv/shared/logs/*
 docker-compose up -d
 
+
 ## Training Lab Environment
 
 env | grep KONG_ | grep -v SERVICE | sort
+
 
 ## Task: Verify Admin API
 
 http -h GET kongcluster:8001
 ### curl -IX GET kongcluster:8001
 
+
 ## Task: Verify Kong Manager 
 
 echo $KONG_MANAGER_URI
+
 
 ## Task: Task: Apply and review the licence
 
@@ -44,11 +51,13 @@ http –headers POST kongcluster:8001/licenses \
 http GET kongcluster:8001/license/report
 ### curl -sX GET kongcluster:8001/license/report | jq
 
+
 ## Task: Recreate/Restart the CP to enable EE features
 
 docker-compose stop kong-cp
 docker-compose rm -f kong-cp
 docker-compose up -d kong-cp
+
 
 ## Task: Enable the Developer Portal:
 
@@ -58,6 +67,7 @@ http -f PATCH kongcluster:8001/workspaces/default \
 ### curl -sX PATCH kongcluster:8001/workspaces/default \
       -d "config.portal=true" \
       | jq
+
 
 ## Task : Create a Developer Account
 
@@ -74,6 +84,7 @@ http POST $KONG_PORTAL_API_URI/default/register <<< '{"email":"myemail@example.c
                   }' \
       | jq            
 
+
 ## Task: Task: Approve the Developer
 
 http PATCH "$KONG_ADMIN_API_URI/default/developers/myemail@example.com" <<< '{"status": 0}'
@@ -85,6 +96,7 @@ http PATCH "$KONG_ADMIN_API_URI/default/developers/myemail@example.com" <<< '{"s
 
 http GET kongcluster:1080/api/emails
 ### curl -sX GET kongcluster:1080/api/emails | jq
+
 
 ## Task: Add an API Spec to test
 
@@ -99,28 +111,28 @@ http --form POST kongcluster:8001/files \
 
 ## Using decK
 
+
 ## Task: Configure decK and Create a sample Service/Route
 
 cd ~/kong-gateway-operations/installation
 sed -i "s|KONG_ADMIN_API_URI|$KONG_ADMIN_API_URI|g" deck/deck.yaml
 cp deck/deck.yaml ~/.deck.yaml
-deck ping
 
 http POST kongcluster:8001/services \
-  name=mockbin \
+  name=mockbin_service \
   url=http://mockbin:8080/request
 
 ### curl -sX POST kongcluster:8001/services \
-      -d name=mockbin \
+      -d name=mockbin_service \
       -d url=http://mockbin:8080/request \
       | jq
 
-http -f POST kongcluster:8001/services/mockbin/routes \
-  name=mockbin \
+http -f POST kongcluster:8001/services/mockbin_service/routes \
+  name=mockbin_route \
   paths=/mockbin
 
-### curl -sX POST kongcluster:8001/services/mockbin/routes \
-      -d name=mockbin \
+### curl -sX POST kongcluster:8001/services/mockbin_service/routes \
+      -d name=mockbin_route \
       -d paths=/mockbin \
       | jq
 
@@ -148,14 +160,24 @@ deck sync \
 ## Task: Restore Kong configuration using decK
 
 deck sync \
-  --state deck/gwopslabdump.yaml \
+  --state gwopslabdump.yaml \
   --workspace default
 
-Created service mockbin is consumable here:
+
+## Task: Confirm Service Restoration
+
+http GET kongcluster:8001/services
+### curl -sX GET kongcluster:8001/services | jq
+
+http GET kongcluster:8001/routes
+### curl -sX GET kongcluster:8001/routes | jq
+
 http GET kongcluster:8000/mockbin
 ### curl -iX GET kongcluster:8000/mockbin
+
 http --verify no GET https://kongcluster:8443/mockbin
 ### curl -k -iX GET https://kongcluster:8443/mockbin
+
 
 ## Kong Upgrade Lab
 
@@ -165,6 +187,7 @@ docker-compose down
 ## Task: Create a dedicated docker network and a database container
 
 docker network create kong-edu-net
+
 docker run -d --name kong-ee-database --network kong-edu-net \
   -p 5432:5432 \
   -e "POSTGRES_USER=kong" \
@@ -175,6 +198,7 @@ docker run -d --name kong-ee-database --network kong-edu-net \
 ## Task: Bootstrap the Database for Kong 2.5.1.2
 
 export KONG_LICENSE_DATA=`cat "/etc/kong/license.json"` 
+
 docker run --rm --network kong-edu-net \
   -e "KONG_DATABASE=postgres" \
   -e "KONG_PG_HOST=kong-ee-database" \
@@ -185,7 +209,7 @@ docker run --rm --network kong-edu-net \
   -e "KONG_PG_PASSWORD=kong" \
   -e "KONG_PASSWORD=admin" \
   -e "KONG_PG_DATABASE=kong-edu" \
-  kong/kong-gateway:2.5.1.2-alpine kong migrations bootstrap
+  kong/kong-gateway:2.5.1.2-alpine kong migrations bootstrap --vv
 
 ## Task: Start Kong Gateway 2.5.1.2
 
@@ -208,28 +232,32 @@ docker run -d --name kong-ee-edu --network kong-edu-net \
   -p 8443-8445:8443-8445 \
   kong/kong-gateway:2.5.1.2-alpine
 
+
 ## Task: Check Version & create a simple service/route
 
 http GET kongcluster:8001 | jq .version
 ### curl -sX GET kongcluster:8001 | jq .version
+
+docker-compose up -d mockbin
 
 http POST kongcluster:8001/services \
   name=mockbin \
   url=http://mockbin:8080/request
 
 ### curl -sX POST kongcluster:8001/services \
-       -d name=mockbin \
-       -d url=https://mockbin/request \
+       -d name=mockbin_service \
+       -d url=http://mockbin:808/request \
        | jq
 
-http -f POST kongcluster:8001/services/mockbin/routes \
-  name=mockbin \
+http -f POST kongcluster:8001/services/mockbin_service/routes \
+  name=mockbin_route \
   paths=/mockbin
 
-### curl -sX POST kongcluster:8001/services/mockbin/routes \
-      -d name=mockbin \
+### curl -sX POST kongcluster:8001/services/mockbin_service/routes \
+      -d name=mockbin_route \
       -d paths=/mockbin \
       | jq
+
 
 ## Task: Run the 2.6 migrations
 
@@ -290,6 +318,7 @@ docker rm -f $(docker ps -a -q) > /dev/null 2>&1
 docker volume rm $(docker volume ls -q) > /dev/null 2>&1
 docker network rm -f kong-edu-net > /dev/null 2>&1
 
+
 ## Task: Upgrade Using Docker Compose
 
 export KONG_LICENSE_DATA=`cat "/etc/kong/license.json"`
@@ -302,33 +331,39 @@ http GET kongcluster:8001 \
 ### curl -sX GET kongcluster:8001 \
       | jq '.hostname + " " + .version'
 
+docker-compose up -d mockbin
+
 http POST kongcluster:8001/services \
-  name=mockbin \
+  name=mockbin_service \
   url=http://mockbin:8080/request
 
 ### curl -sX POST kongcluster:8001/services \
-       -d name=mockbin \
-       -d url=https://mockbin/request \
+       -d name=mockbin_service \
+       -d url=https://mockbin:8080/request \
        | jq
 
-http -f POST kongcluster:8001/services/mockbin/routes \
-  name=mockbin \
+http -f POST kongcluster:8001/services/mockbin_service/routes \
+  name=mockbin_route \
   paths=/mockbin
 
-### curl -sX POST kongcluster:8001/services/mockbin/routes \
-      -d name=mockbin \
+### curl -sX POST kongcluster:8001/services/mockbin_service/routes \
+      -d name=mockbin_route \
       -d paths=/mockbin \
       | jq
 
 export KONG_VERSION="2.6.0.1-alpine"
-docker-compose -f kongupgdemo.yaml up -d
+docker-compose -p demo -f kongupgdemo.yaml up -d
 
-http -h GET kongcluster:8000/mockbin
+http --headers GET kongcluster:8000/mockbin
 ### curl -IX GET kongcluster:8000/mockbin
 
-docker-compose -f kongupgdemo.yaml down -v
+docker-compose -f kongupgdemo.yaml down -v  > /dev/null 2>&1
+docker-compose down > /dev/null 2>&1
+
+
 
 # 02 - Securing Kong Gatway
+
 
 ## Lab: Securing Kong Gateway
 

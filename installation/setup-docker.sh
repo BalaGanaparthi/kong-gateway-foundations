@@ -14,5 +14,11 @@ cp loopback.yaml /srv/shared/misc
 cp misc/kong_realm_template.json /srv/shared/misc
 cp misc/prometheus.yaml /srv/shared/misc
 cp misc/statsd.rules.yaml /srv/shared/misc
+if [ ! -f "~/.local/bin/scram.sh" ]
+then
+  mkdir -p ~/.local/bin
+  cp ~/kong-gateway-operations/installation/scram.sh ~/.local/bin/
+  source /home/labuser/.profile
+fi
 docker-compose pull &>/dev/null &
 printf "\n${red}Docker Setup complete.${normal}\n\n"
