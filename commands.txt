@@ -51,6 +51,8 @@ http –headers POST kongcluster:8001/licenses \
 http GET kongcluster:8001/license/report
 ### curl -sX GET kongcluster:8001/license/report | jq
 
+jq . /etc/kong/license.json
+
 
 ## Task: Recreate/Restart the CP to enable EE features
 
@@ -1136,7 +1138,7 @@ source ~/kong-gateway-operations/installation/scram.sh
 
 cd ~/kong-gateway-operations/installation
 sed -n -e '/keycloak/,/true\"/ p' docker-compose.yaml
-cat misc/kong_realm_template.json | jq '.users[].username'
+jq -r '.users[].username' misc/kong_realm_template.json
 
 
 ## Task: Add a Service to use with OIDC
@@ -1759,20 +1761,21 @@ http -f POST kongcluster:8001/plugins name=prometheus
       | jq
 
 for ((i=0;i<32;i++))
-  do
-    sleep 1
-    http -h GET $KONG_PROXY_URI/mockbin?apikey=JanePassword
-    sleep 1
-    http -h GET $KONG_PROXY_URI/mockbin
-  done
+    do
+      sleep 1
+      http -h GET $KONG_PROXY_URI/mockbin?apikey=JanePassword > /dev/null 2>&1
+      sleep 1
+      http -h GET $KONG_PROXY_URI/mockbin > /dev/null 2>&1
+    done &
+
 
 ### for ((i=0;i<32;i++))
       do
         sleep 1
-        curl -IsX GET $KONG_PROXY_URI/mockbin?apikey=JanePassword
+        curl -IsX GET $KONG_PROXY_URI/mockbin?apikey=JanePassword > /dev/null 2>&1
         sleep 1
-        curl -IsX GET $KONG_PROXY_URI/mockbin
-      done
+        curl -IsX GET $KONG_PROXY_URI/mockbin > /dev/null 2>&1
+      done &
 
 
 ## Task: Get Prometheus Plugin Metrics through API
@@ -1876,11 +1879,11 @@ http GET $KONG_PROXY_URI/mockbin?apikey=JanePassword
 http -b GET kongcluster:8000/mockbin?apikey=JanePassword
 ### curl -sX GET kongcluster:8000/mockbin?apikey=JanePassword | jq
 
-http -f POST kongcluster:8001/services/mockbin/plugins \
+http -f POST kongcluster:8001/services/mockbin_service/plugins \
     name=jq \
     config.response_jq_program='del(.queryString.apikey)'
 
-### curl -sX POST kongcluster:8001/services/mockbin/plugins \
+### curl -sX POST kongcluster:8001/services/mockbin_service/plugins \
       -d name=jq \
       -d config.response_jq_program='del(.queryString.apikey)' \
       | jq
@@ -1890,7 +1893,8 @@ http -f POST kongcluster:8001/services/mockbin/plugins \
 http -b GET $KONG_PROXY_URI/mockbin/request?apikey=JanePassword
 ### curl -sX GET $KONG_PROXY_URI/mockbin/request?apikey=JanePassword | jq
 
-## Task: Configure Exit Transformer Plugin
+
+## Task: Create Transformation Function
 
 http GET kongcluster:8000/mockbin
 ### curl -sX GET kongcluster:8000/mockbin
@@ -1912,6 +1916,18 @@ $ cat << EOF > transform.lua
       return status, new_body, headers
     end
 EOF
+
+
+## Task: Configure Exit Transformer Plugin
+
+http -f POST kongcluster:8001/services/mockbin_service/plugins \
+  "name=exit-transformer" \
+  "config.functions=@transform.lua"
+
+### curl -sX POST http://kongcluster:8001/services/mockbin_service/plugins \
+      -F "name=exit-transformer"  \
+      -F "config.functions=@transform.lua" \
+     | jq
 
 http GET $KONG_PROXY_URI/mockbin
 ### curl -isX GET $KONG_PROXY_URI/mockbin
