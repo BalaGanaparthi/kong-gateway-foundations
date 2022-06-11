@@ -11,6 +11,7 @@ services:
     - kong-edu-net
     image: jboss/keycloak:16.1.1
     container_name: keycloak
+    hostname: keycloak
     command: -Dkeycloak.profile.feature.upload_scripts=enabled
     volumes:
     - /srv/shared/misc:/data
