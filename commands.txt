@@ -38,7 +38,7 @@ http -h GET kongcluster:8001
 echo $KONG_MANAGER_URI
 
 
-## Task: Task: Apply and review the licence
+## Task: Apply and review the licence
 
 http –headers POST kongcluster:8001/licenses \ 
   payload=@/etc/kong/license.json \ 
@@ -365,7 +365,7 @@ http -f POST kongcluster:8001/services/mockbin_service/routes \
 export KONG_VERSION="2.6.0.1-alpine"
 docker-compose -p demo -f kongupgdemo.yaml up -d
 
-http --headers GET kongcluster:8000/mockbin
+http -h GET kongcluster:8000/mockbin
 ### curl -IX GET kongcluster:8000/mockbin
 
 docker-compose -f kongupgdemo.yaml down -v  > /dev/null 2>&1
