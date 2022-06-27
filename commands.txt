@@ -3,7 +3,7 @@
 
 ## Task: Obtain docker certificates, compose file etc.
 
-git clone https://github.com/gigaprimatus/kong-gateway-operations.git
+git clone https://github.com/kong-education/kong-gateway-operations.git
 cd kong-gateway-operations/installation
 ./setup-docker.sh
 ls -la
@@ -190,7 +190,7 @@ cd ~/kong-gateway-operations/installation/
 docker-compose down
 
 cd
-git clone https://github.com/gigaprimatus/kong-gateway-operations.git
+git clone https://github.com/kong-education/kong-gateway-operations.git
 cd ~/kong-gateway-operations/installation/
 
 
@@ -379,7 +379,7 @@ docker-compose down > /dev/null 2>&1
 ## Lab: Securing Kong Gateway
 
 cd
-git clone https://github.com/gigaprimatus/kong-gateway-operations.git
+git clone https://github.com/kong-education/kong-gateway-operations.git
 source kong-gatway-operations/installation/scram.sh
 
 ## Task: Create New Role my_role and add Permissions
@@ -853,7 +853,7 @@ cd
 source ~/kong-gateway-operations/installation/scram.sh
 
 cd
-git clone https://github.com/gigaprimatus/kong-gateway-operations.git
+git clone https://github.com/kong-education/kong-gateway-operations.git
 source ~/kong-gateway-operations/installation/scram.sh
 
 
@@ -1142,7 +1142,7 @@ cd
 source scram.sh
 
 cd
-git clone https://github.com/gigaprimatus/kong-gateway-operations.git
+git clone https://github.com/kong-education/kong-gateway-operations.git
 source ~/kong-gateway-operations/installation/scram.sh
 
 
@@ -1454,7 +1454,7 @@ cd
 source scram.sh
 
 cd
-git clone https://github.com/gigaprimatus/kong-gateway-operations.git
+git clone https://github.com/kong-education/kong-gateway-operations.git
 source ~/kong-gateway-operations/installation/scram.sh
 
 
@@ -1572,7 +1572,7 @@ cd
 source ~/kong-gateway-operations/installation/scram.sh
 
 cd
-git clone https://github.com/gigaprimatus/kong-gateway-operations.git
+git clone https://github.com/kong-education/kong-gateway-operations.git
 source ~/kong-gateway-operations/installation/scram.sh
 
 
@@ -1810,7 +1810,7 @@ cd
 source ~/kong-gateway-operations/installation/scram.sh
 
 cd
-git clone https://github.com/gigaprimatus/kong-gateway-operations.git
+git clone https://github.com/kong-education/kong-gateway-operations.git
 source ~/kong-gateway-operations/installation/scram.sh
 
 

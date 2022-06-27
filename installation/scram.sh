@@ -12,7 +12,7 @@ curl -so ~/.docker/key.pem http://docker:9000/key.pem
 cd ~/
 if [ -d "kong-gateway-operations" ]; then rm -Rf "kong-gateway-operations"; fi
 printf "\n${red}Cloning Kong Gateway Operations Repo under user home directory.${normal}\n"
-git clone https://github.com/gigaprimatus/kong-gateway-operations.git
+git clone https://github.com/kong-education/kong-gateway-operations.git
 cd kong-gateway-operations/installation
 cp misc/docker-config.json ~/.docker/config.json
 printf "\n${red}Copying SSL certificates to shared location.${normal}"
