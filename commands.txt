@@ -161,6 +161,8 @@ deck sync \
 
 ## Task: Restore Kong configuration using decK
 
+cat gwopslabdump.yaml
+
 deck sync \
   --state gwopslabdump.yaml \
   --workspace default
@@ -179,6 +181,7 @@ http GET kongcluster:8000/mockbin
 
 http --verify no GET https://kongcluster:8443/mockbin
 ### curl -k -iX GET https://kongcluster:8443/mockbin
+
 
 
 # 02 - Upgrading Kong Gateway
