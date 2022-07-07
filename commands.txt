@@ -40,7 +40,7 @@ echo $KONG_MANAGER_URI
 
 ## Task: Apply and review the licence
 
-http –headers POST kongcluster:8001/licenses \ 
+http -h POST kongcluster:8001/licenses \ 
   payload=@/etc/kong/license.json \ 
   | grep HTTP
 
@@ -87,7 +87,7 @@ http POST $KONG_PORTAL_API_URI/default/register <<< '{"email":"myemail@example.c
       | jq            
 
 
-## Task: Task: Approve the Developer
+## Task: Approve the Developer
 
 http PATCH "$KONG_ADMIN_API_URI/default/developers/myemail@example.com" <<< '{"status": 0}'
 
