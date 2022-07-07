@@ -40,7 +40,7 @@ echo $KONG_MANAGER_URI
 
 ## Task: Apply and review the licence
 
-http –headers POST kongcluster:8001/licenses \ 
+http -h POST kongcluster:8001/licenses \ 
   payload=@/etc/kong/license.json \ 
   | grep HTTP
 
@@ -87,7 +87,7 @@ http POST $KONG_PORTAL_API_URI/default/register <<< '{"email":"myemail@example.c
       | jq            
 
 
-## Task: Task: Approve the Developer
+## Task: Approve the Developer
 
 http PATCH "$KONG_ADMIN_API_URI/default/developers/myemail@example.com" <<< '{"status": 0}'
 
@@ -110,6 +110,7 @@ http --form POST kongcluster:8001/files \
       -F "path=specs/jokes.one.oas.yaml" \
       -F "contents=@jokes1OAS.yaml" \
       | jq
+
 
 ## Using decK
 
@@ -161,6 +162,8 @@ deck sync \
 
 ## Task: Restore Kong configuration using decK
 
+cat gwopslabdump.yaml
+
 deck sync \
   --state gwopslabdump.yaml \
   --workspace default
@@ -179,6 +182,7 @@ http GET kongcluster:8000/mockbin
 
 http --verify no GET https://kongcluster:8443/mockbin
 ### curl -k -iX GET https://kongcluster:8443/mockbin
+
 
 
 # 02 - Upgrading Kong Gateway
