@@ -255,7 +255,7 @@ http GET kongcluster:8001 | jq .version
 docker-compose up -d mockbin
 
 http POST kongcluster:8001/services \
-  name=mockbin \
+  name=mockbin_service \
   url=http://mockbin:8080/request
 
 ### curl -sX POST kongcluster:8001/services \
@@ -1856,15 +1856,15 @@ docker exec kong-cp kong reload --vv
 
 ## Task: Use Debug Header to see used Service/Route
 
-http POST kongcluster:8001/services name=mockbin url=http://mockbin:8080/request
+http POST kongcluster:8001/services name=mockbin_service url=http://mockbin:8080/request
 ### curl -sX POST kongcluster:8001/services \
-      -d name=mockbin \
+      -d name=mockbin_service \
       -d url=http://mockbin:8080/request \
       | jq
 
-http -f POST kongcluster:8001/services/mockbin/routes name=mockbin paths=/mockbin
-### curl -sX POST kongcluster:8001/services/mockbin/routes \
-      -d name=mockbin \
+http -f POST kongcluster:8001/services/mockbin_service/routes name=mockbin_route paths=/mockbin
+### curl -sX POST kongcluster:8001/services/mockbin_service/routes \
+      -d name=mockbin_route \
       -d paths=/mockbin \
       | jq
 
