@@ -16,7 +16,9 @@ services:
     volumes:
     - /home/ubuntu/misc:/data
     healthcheck:
-      test: ["CMD", "curl", "-f", "$KEYCLOAK_URI/auth/realms/master"]
+      test: ["CMD", "curl", "-f", "http://keycloak:8080/auth/realms/master"]
+      # test: ["CMD", "curl", "-f", "http://keycloak/auth/realms/master"]
+      # test: ["CMD", "curl", "-f", "$KEYCLOAK_URI/auth/realms/master"]
       interval: 30s
       timeout: 30s
       retries: 3
