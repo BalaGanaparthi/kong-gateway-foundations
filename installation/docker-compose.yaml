@@ -14,7 +14,7 @@ services:
     hostname: keycloak
     command: -Dkeycloak.profile.feature.upload_scripts=enabled
     volumes:
-    - /srv/shared/misc:/data
+    - /home/ubuntu/misc:/data
     healthcheck:
       test: ["CMD", "curl", "-f", "$KEYCLOAK_URI/auth/realms/master"]
       interval: 30s
@@ -95,8 +95,8 @@ services:
     depends_on:
     - kong-migrations-up
     volumes:
-    - /srv/shared/logs:/srv/shared/logs
-    - /srv/shared/ssl-certs:/srv/shared/ssl
+    - /usr/local/kong/logs:/srv/shared/logs
+    - /home/ubuntu/kong-gateway-operations/installation/ssl-certs:/srv/shared/ssl
     healthcheck:
       test: ["CMD", "kong", "health"]
       interval: 30s
@@ -189,8 +189,8 @@ services:
     depends_on:
     - kong-cp
     volumes:
-    - /srv/shared/ssl-certs:/srv/shared/ssl
-    - /srv/shared/logs:/srv/shared/logs
+    - /usr/local/kong/logs:/srv/shared/logs
+    - /home/ubuntu/kong-gateway-operations/installation/ssl-certs:/srv/shared/ssl
     healthcheck:
       test: ["CMD", "kong", "health"]
       interval: 30s
@@ -292,7 +292,7 @@ services:
     ports:
     - 9090:9090
     volumes:
-    - /srv/shared/misc/prometheus.yaml:/etc/prometheus/prometheus.yaml
+    - /home/ubuntu/misc/prometheus.yaml:/etc/prometheus/prometheus.yaml
 
   statsd:
     networks:
@@ -312,7 +312,7 @@ services:
     - 9125:9125
     - 9102:9102
     volumes:
-    - /srv/shared/misc/statsd.rules.yaml:/tmp/statsd.rules.yaml
+    - /home/ubuntu/misc/statsd.rules.yaml:/tmp/statsd.rules.yaml
 
   grafana:
     networks:
