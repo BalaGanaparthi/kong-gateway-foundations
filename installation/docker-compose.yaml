@@ -148,6 +148,7 @@ services:
      #KONG_LICENSE_DATA: ${KONG_LICENSE_DATA}
      #KONG_ENFORCE_RBAC: "on"
      #KONG_ADMIN_API_URI: "https://api.kong.lan:8444"
+      # KONG_ADMIN_API_URI: ${KONG_ADMIN_API_URI:-http://localhost:8001}
       KONG_ADMIN_API_URI: ${KONG_ADMIN_API_URI:-http://localhost:8001}
       KONG_ADMIN_SSL_CERT_KEY: "/srv/shared/ssl/wildcard.key"
       KONG_ADMIN_SSL_CERT: "/srv/shared/ssl/wildcard.pem"
