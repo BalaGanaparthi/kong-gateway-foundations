@@ -238,10 +238,11 @@ docker run -d --name kong-ee-edu --network kong-edu-net \
   -e "KONG_ADMIN_ACCESS_LOG=/dev/stdout" \
   -e "KONG_PROXY_ERROR_LOG=/dev/stderr" \
   -e "KONG_ADMIN_ERROR_LOG=/dev/stderr" \
-  -e "KONG_ADMIN_LISTEN=0.0.0.0:8001" \
+  -e "KONG_ADMIN_LISTEN=0.0.0.0:8001, 0.0.0.0:8444 http2 ssl" \
   -e "KONG_LICENSE_DATA=$KONG_LICENSE_DATA" \
   -e "KONG_PASSWORD=admin" \
-  -e "KONG_ADMIN_GUI_URL=http://localhost:8002" \
+  -e "KONG_ADMIN_API_URI=$KONG_ADMIN_API_URI" \
+  -e "KONG_ADMIN_GUI_URL=$KONG_MANAGER_URI" \
   -p 8000-8004:8000-8004 \
   -p 8443-8445:8443-8445 \
   kong/kong-gateway:2.5.1.2-alpine
@@ -252,7 +253,9 @@ docker run -d --name kong-ee-edu --network kong-edu-net \
 http GET kongcluster:8001 | jq .version
 ### curl -sX GET kongcluster:8001 | jq .version
 
-docker-compose up -d mockbin
+docker run -d --name mockbin \
+  --network kong-edu-net \
+  -p 8888:8080 mashape/mockbin
 
 http POST kongcluster:8001/services \
   name=mockbin_service \
@@ -260,7 +263,7 @@ http POST kongcluster:8001/services \
 
 ### curl -sX POST kongcluster:8001/services \
        -d name=mockbin_service \
-       -d url=http://mockbin:808/request \
+       -d url=http://mockbin:8080/request \
        | jq
 
 http -f POST kongcluster:8001/services/mockbin_service/routes \
@@ -308,19 +311,21 @@ docker run -d --name kong-ee-edu --network kong-edu-net \
   -e "KONG_PG_HOST=kong-ee-database" \
   -e "KONG_PG_PORT=5432" \
   -e "KONG_PG_PASSWORD=kong" \
-  -e "KONG_PG_HOST=kong-ee-database" \
+  -e "KONG_PASSWORD=admin" \
   -e "KONG_PG_DATABASE=kong-edu" \
   -e "KONG_PROXY_ACCESS_LOG=/dev/stdout" \
   -e "KONG_ADMIN_ACCESS_LOG=/dev/stdout" \
   -e "KONG_PROXY_ERROR_LOG=/dev/stderr" \
   -e "KONG_ADMIN_ERROR_LOG=/dev/stderr" \
-  -e "KONG_ADMIN_LISTEN=0.0.0.0:8001" \
+  -e "KONG_ADMIN_LISTEN=0.0.0.0:8001, 0.0.0.0:8444 http2 ssl" \
   -e "KONG_LICENSE_DATA=$KONG_LICENSE_DATA" \
   -e "KONG_PASSWORD=admin" \
-  -e "KONG_ADMIN_GUI_URL=http://localhost:8002" \
+  -e "KONG_ADMIN_API_URI=$KONG_ADMIN_API_URI" \
+  -e "KONG_ADMIN_GUI_URL=$KONG_MANAGER_URI" \
   -p 8000-8004:8000-8004 \
   -p 8443-8445:8443-8445 \
   kong/kong-gateway:2.6.0.1-alpine
+
 
 ## Task: Confirm upgrade and persistence of data
 
@@ -329,9 +334,9 @@ http -h GET kongcluster:8000/mockbin
 
 ## Task: Clean up Lab
 
-docker rm -f $(docker ps -a -q) > /dev/null 2>&1
-docker volume rm $(docker volume ls -q) > /dev/null 2>&1
-docker network rm -f kong-edu-net > /dev/null 2>&1
+docker rm -f $(docker ps -a -q)
+docker volume rm $(docker volume ls -q)
+docker network rm kong-edu-net
 
 
 ## Task: Upgrade Using Docker Compose
@@ -346,15 +351,13 @@ http GET kongcluster:8001 \
 ### curl -sX GET kongcluster:8001 \
       | jq '.hostname + " " + .version'
 
-docker-compose up -d mockbin
-
 http POST kongcluster:8001/services \
   name=mockbin_service \
   url=http://mockbin:8080/request
 
 ### curl -sX POST kongcluster:8001/services \
        -d name=mockbin_service \
-       -d url=https://mockbin:8080/request \
+       -d url=http://mockbin:8080/request \
        | jq
 
 http -f POST kongcluster:8001/services/mockbin_service/routes \
@@ -367,13 +370,12 @@ http -f POST kongcluster:8001/services/mockbin_service/routes \
       | jq
 
 export KONG_VERSION="2.6.0.1-alpine"
-docker-compose -p demo -f kongupgdemo.yaml up -d
+docker-compose -f kongupgdemo.yaml up -d
 
 http -h GET kongcluster:8000/mockbin
 ### curl -IX GET kongcluster:8000/mockbin
 
-docker-compose -f kongupgdemo.yaml down -v  > /dev/null 2>&1
-docker-compose down > /dev/null 2>&1
+docker-compose -f kongupgdemo.yaml down -v
 
 
 
