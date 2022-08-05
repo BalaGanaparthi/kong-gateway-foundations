@@ -1876,8 +1876,8 @@ http -h GET kongcluster:8000/mockbin Kong-Debug:1
 
 ## Task: Use Granular Tracing to Log Details
 
-http POST kongcluster:8001/services/mockbin/plugins name=key-auth
-### curl -sX POST kongcluster:8001/services/mockbin/plugins \
+http POST kongcluster:8001/services/mockbin_service/plugins name=key-auth
+### curl -sX POST kongcluster:8001/services/mockbin_service/plugins \
       -d name=key-auth \
       | jq
 
